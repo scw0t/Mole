@@ -98,7 +98,7 @@ public class IssuesChooser extends Stage {
                     new Label(issue.getIssueAttributes()));
             hBox2.getChildren().addAll(new Label(issue.getIssueYear()),
                     new Label(issue.getIssueFormats()),
-                    new Label(issue.getIssueLabel()),
+                    new Label(issue.getIssueLabel() + " / " + issue.getCatNumber()),
                     new Label(issue.getIssueCountries()));
             vBox.getChildren().addAll(hBox1, hBox2);
             IssueRadioButton radioButton = new IssueRadioButton(null, issue);

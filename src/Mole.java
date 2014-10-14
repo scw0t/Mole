@@ -6,9 +6,11 @@ import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.layout.StackPane;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
@@ -17,13 +19,18 @@ import org.jaudiotagger.tag.TagException;
 
 public class Mole extends Application {
 
-    private final String initDir = "G:\\test";
+    private final String initDir = "I:\\Music\\!test";
     static Stage primaryStage;
 
     @Override
     public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
+        VBox root = new VBox();
+        root.setPadding(new Insets(10));
+        root.setSpacing(10);
+        final TextField pathTextArea = new TextField(initDir);
         Button btn = new Button();
+        
         btn.setText("Run");
         btn.setOnAction(new EventHandler<ActionEvent>() {
 
@@ -31,7 +38,7 @@ public class Mole extends Application {
             public void handle(ActionEvent event) {
                 try {
                     LogOutput logOutput = new LogOutput();
-                    Process process = new Process(new File(initDir));
+                    Process process = new Process(new File(pathTextArea.getText()));
                     process.setLogOutput(logOutput);
                     process.init();
                     
@@ -40,11 +47,11 @@ public class Mole extends Application {
                 }
             }
         });
+        
+        root.getChildren().addAll(btn, pathTextArea);
 
-        StackPane root = new StackPane();
-        root.getChildren().add(btn);
-
-        Scene scene = new Scene(root, 300, 250);
+        
+        Scene scene = new Scene(root, 400, 600);
 
         primaryStage.setTitle("Hello World!");
         primaryStage.setScene(scene);

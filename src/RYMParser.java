@@ -177,6 +177,15 @@ public class RYMParser implements Runnable {
             Document doc = Jsoup.connect(currentAlbumUrl)
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
+            
+            String fixUrl = fixAlbumUrl(doc);
+            
+            if (!fixUrl.equals(doc.baseUri())) {
+                currentAlbumUrl = fixUrl;
+                doc = Jsoup.connect(currentAlbumUrl)
+                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                    .timeout(20000).get();
+            }
 
             Element contentTable = doc.getElementsByClass("album_info").first();
 
@@ -247,8 +256,6 @@ public class RYMParser implements Runnable {
 
                         }
 
-                        
-
                     }
                 }
                 record.setIssues(parseIssuesInfo(doc, record));
@@ -307,8 +314,18 @@ public class RYMParser implements Runnable {
                     issue.setLink(issuesElements.get(i).getElementsByClass("sametitle").first().attr("href"));
                 }
 
+                if (!issuesElements.get(i).getElementsByClass("issue_title").isEmpty()) {
+                    issue.setLink(issuesElements.get(i).getElementsByClass("issue_title").first().
+                            getElementsByTag("a").attr("href"));
+                }
+
                 if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
                     issue.setIssueName(issuesElements.get(i).getElementsByClass("sametitle").first().text());
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("issue_title").isEmpty()) {
+                    issue.setIssueName(issuesElements.get(i).getElementsByClass("issue_title").first().
+                            getElementsByTag("a").text());
                 }
 
                 if (!issuesElements.get(i).getElementsByClass("attribute").isEmpty()) {
@@ -316,7 +333,7 @@ public class RYMParser implements Runnable {
                 }
 
                 if (!issuesElements.get(i).getElementsByClass("issue_year").isEmpty()) {
-                    issue.setIssueYear(issuesElements.get(i).getElementsByClass("issue_year").first().text().replaceAll(" ", ""));
+                    issue.setIssueYear(issuesElements.get(i).getElementsByClass("issue_year").first().text().replaceAll(" ", ""));
                 }
 
                 if (!issuesElements.get(i).getElementsByClass("issue_formats").isEmpty()) {
@@ -354,6 +371,32 @@ public class RYMParser implements Runnable {
             System.out.println("На сайте произошли какие-то изменения. Check this out.");
         }
         return issues;
+    }
+
+    private String fixAlbumUrl(Document doc) {
+        String url = "";
+        Element issuesTable = doc.getElementsByClass("issues").first();
+        Elements issuesElements = issuesTable.getElementsByClass("issue_info");
+
+        if (issuesElements != null) {
+            if (!issuesElements.get(1).getElementsByClass("sametitle").isEmpty()) {
+                url = issuesElements.get(1).getElementsByClass("sametitle").first().attr("href");
+            }
+            if (url.isEmpty()) {
+                if (!issuesElements.get(1).getElementsByClass("issue_title").isEmpty()) {
+                    url = issuesElements.get(1).getElementsByClass("issue_title").first().
+                            getElementsByTag("a").attr("href");
+                }
+            }
+        } else {
+            System.out.println("CheckAlbumURL: На сайте произошли какие-то изменения. Check this out.");
+        }
+
+        if (!url.isEmpty()) {
+            return rymLink + url;
+        } else {
+            return url;
+        }
     }
 
     public boolean parseVAInfo() {

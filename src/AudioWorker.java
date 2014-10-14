@@ -222,6 +222,12 @@ public class AudioWorker {
                     mp3.getTag().setField(FieldKey.ARTIST, artist);
                 }
 
+                if (artist.startsWith("The ")) {
+                    mp3.getTag().setField(FieldKey.ARTIST_SORT, artist.replaceFirst("The ", "") + ", The");
+                } else {
+                    mp3.getTag().setField(FieldKey.ARTIST_SORT, artist);
+                }
+
                 if (!albumYear.isEmpty() && !mp3.getTag().getFirst(FieldKey.YEAR).equals(albumYear)) {
                     if (!mp3.getTag().getFirst(FieldKey.YEAR).isEmpty()) {
                         if (Integer.valueOf(albumYear) < Integer.valueOf(mp3.getTag().getFirst(FieldKey.YEAR))) {
