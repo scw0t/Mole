@@ -17,7 +17,8 @@ import org.jaudiotagger.tag.TagException;
 
 public class Mole extends Application {
 
-    private final String initDir = "D:\\test";
+    private final String initDir = "G:\\test";
+    static Stage primaryStage;
 
     @Override
     public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
@@ -47,8 +48,9 @@ public class Mole extends Application {
 
         primaryStage.setTitle("Hello World!");
         primaryStage.setScene(scene);
+        
         primaryStage.show();
-
+        this.primaryStage = primaryStage;
     }
 
     public static void main(String[] args) {

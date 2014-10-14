@@ -1,24 +1,20 @@
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-public class RYMParser {
+public class RYMParser implements Runnable {
 
     private LogOutput logOutput;
 
     private final String initArtistUrl = "http://rateyourmusic.com/artist/";
     private final String initAlbumUrl = "http://rateyourmusic.com/release/album/";
+    private final String initVAUrl = "http://rateyourmusic.com/release/comp/various_artists_f2/";
     private final String rymLink = "http://rateyourmusic.com";
 
     private int iterateCount; // кол-во итераций для посика нужного исполнителя
@@ -30,6 +26,7 @@ public class RYMParser {
 
     private String currentAlbumUrl = "";
     private String currentArtistUrl = "";
+    private String currentVAUrl = "";
 
     private ArrayList<Record> albumRecords;
     private ArrayList<Record> liveRecords;
@@ -181,14 +178,6 @@ public class RYMParser {
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
 
-            String generalAlbumViewLink = getReleaseViewLink(doc);
-
-            if (!generalAlbumViewLink.isEmpty()) {
-                doc = Jsoup.connect(rymLink + generalAlbumViewLink)
-                        .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                        .timeout(20000).get();
-            }
-
             Element contentTable = doc.getElementsByClass("album_info").first();
 
             if (contentTable != null) {
@@ -224,18 +213,18 @@ public class RYMParser {
 
                         if (subTableHeader.text().equals("Type")) {
                             System.out.println("-----Type-----");
-                            getRecord().setType(contentTable.select("tr").get(i).select("td").text());
+                            record.setType(contentTable.select("tr").get(i).select("td").text());
                         }
 
                         if (subTableHeader.text().equals("Released")) {
                             System.out.println("-----Released-----");
-                            getRecord().setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                            record.setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
                                     .split(" ")[2]);
                         }
 
                         if (subTableHeader.text().equals("Recorded")) {
                             System.out.println("-----Recorded-----");
-                            getRecord().setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                            record.setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
                                     .split(" ")[2]);
                         }
 
@@ -251,10 +240,19 @@ public class RYMParser {
                                 genre.setLink(genreElement.attr("href"));
                                 albumGenres.add(genre);
                             }
-                            getRecord().setGenres(albumGenres);
+                            record.setGenres(albumGenres);
                         }
+
+                        if (parsed) {
+
+                        }
+
+                        
+
                     }
                 }
+                record.setIssues(parseIssuesInfo(doc, record));
+                record.printIssues();
                 parsed = true;
             } else {
                 System.out.println("На сайте произошли какие-то изменения. Check this out.");
@@ -291,6 +289,147 @@ public class RYMParser {
                     break;
                 }
             }
+        }
+
+        return parsed;
+    }
+
+    public ArrayList<Issue> parseIssuesInfo(Document doc, Record record) {
+        Element issuesTable = doc.getElementsByClass("issues").first();
+        Elements issuesElements = issuesTable.getElementsByClass("issue_info");
+
+        ArrayList<Issue> issues = new ArrayList<>();
+
+        if (issuesElements != null) {
+            for (int i = 1; i < issuesElements.size(); i++) {
+                Issue issue = new Issue();
+                if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
+                    issue.setLink(issuesElements.get(i).getElementsByClass("sametitle").first().attr("href"));
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
+                    issue.setIssueName(issuesElements.get(i).getElementsByClass("sametitle").first().text());
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("attribute").isEmpty()) {
+                    issue.setIssueAttributes(issuesElements.get(i).getElementsByClass("attribute").first().text());
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("issue_year").isEmpty()) {
+                    issue.setIssueYear(issuesElements.get(i).getElementsByClass("issue_year").first().text().replaceAll(" ", ""));
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("issue_formats").isEmpty()) {
+                    issue.setIssueFormats(issuesElements.get(i).getElementsByClass("issue_formats").first().text());
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("label").isEmpty()) {
+                    issue.setLabelLink(issuesElements.get(i).getElementsByClass("label").first().attr("href"));
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("flag").isEmpty()) {
+                    issue.setIssueCountries(issuesElements.get(i).getElementsByClass("flag").first().attr("title"));
+                }
+
+                if (issuesElements.get(i).getElementsByClass("issue_label") != null) {
+                    String[] labelInfo = issuesElements.get(i).getElementsByClass("issue_label").first().text().split(" / ");
+                    if (labelInfo.length != 0) {
+                        if (labelInfo[0] != null) {
+                            issue.setIssueLabel(labelInfo[0]);
+                        }
+                        if (labelInfo[1] != null) {
+                            issue.setCatNumber(labelInfo[1].replaceAll(" / ", ", "));
+                        }
+                    }
+                }
+
+                if (!issuesElements.get(i).getElementsByClass("primary_indicator").isEmpty()) {
+                    issue.setIsPrimary(true);
+                } else {
+                    issue.setIsPrimary(false);
+                }
+                issues.add(issue);
+            }
+        } else {
+            System.out.println("На сайте произошли какие-то изменения. Check this out.");
+        }
+        return issues;
+    }
+
+    public boolean parseVAInfo() {
+
+        boolean parsed = false;
+        try {
+            setCurrentAlbumUrl(initVAUrl + validateUrl(audioAlbumName));
+
+            Document doc = Jsoup.connect(currentAlbumUrl)
+                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                    .timeout(20000).get();
+
+            setRecord(new Record());
+
+            Element tracklistTable = doc.getElementsByClass("tracklisting").first();
+
+            if (tracklistTable != null) {
+                System.out.println("---------- Tracklist -------------");
+                ArrayList<Artist> subArtists = new ArrayList<>();
+                Elements tracklist = tracklistTable.getElementsByClass("track");
+                for (Element track : tracklist) {
+                    Element artistElement = track.getElementsByClass("artist").first();
+                    Artist subArtist = new Artist(artistElement.text());
+                    subArtist.setLink(artistElement.attr("href"));
+                    subArtists.add(subArtist);
+                }
+                getRecord().setSubArtists(subArtists);
+            }
+
+            Element contentTable = doc.getElementsByClass("album_info").first();
+
+            if (contentTable != null) {
+                System.out.println("-----------------------------------------------------");
+                if (getRecord() == null) {
+                    setRecord(new Record());
+                }
+                getRecord().setArtist(new Artist("VA"));
+                getRecord().setType("Compilation");
+
+                for (int i = 0; i < contentTable.select("tr").size(); i++) {
+                    Element subTableHeader = contentTable.select("th").get(i);
+                    if (subTableHeader != null) {
+                        if (subTableHeader.text().equals("Released")) {
+                            System.out.println("-----Released-----");
+                            getRecord().setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                                    .split(" ")[2]);
+                        }
+
+                        if (subTableHeader.text().equals("Recorded")) {
+                            System.out.println("-----Recorded-----");
+                            getRecord().setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                                    .split(" ")[2]);
+                        }
+
+                        if (subTableHeader.text().equals("Genres")) {
+                            System.out.println("-----Genres-----");
+                            ArrayList<Genre> albumGenres = new ArrayList<>();
+                            Element element = contentTable.select("tr").get(i).
+                                    getElementsByClass("release_pri_genres").first();
+                            Elements genresElements = element.getElementsByClass("genre");
+                            for (Element genreElement : genresElements) {
+                                Genre genre = new Genre();
+                                genre.setName(genreElement.text());
+                                genre.setLink(genreElement.attr("href"));
+                                albumGenres.add(genre);
+                            }
+                            getRecord().setGenres(albumGenres);
+                        }
+                    }
+                }
+                parsed = true;
+            } else {
+                System.out.println("На сайте произошли какие-то изменения. Check this out.");
+            }
+        } catch (IOException ex) {
+            System.out.println("Не удалось получить информацию о VA релизе");
         }
 
         return parsed;
@@ -963,5 +1102,10 @@ public class RYMParser {
 
     public void setCurrentArtistUrl(String currentArtistUrl) {
         this.currentArtistUrl = currentArtistUrl;
+    }
+
+    @Override
+    public void run() {
+
     }
 }

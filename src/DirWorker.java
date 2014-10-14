@@ -1,8 +1,14 @@
-
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,7 +23,7 @@ import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
 public class DirWorker {
-    
+
     private LogOutput logOutput;
 
     private File initFolder;
@@ -27,6 +33,7 @@ public class DirWorker {
     private boolean hasAudio = false;
     private boolean hasImages = false;
     private boolean hasInnerFolder = false;
+    private boolean hasMultiCD = false;
 
     public DirWorker(File initFolder) {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
@@ -64,6 +71,7 @@ public class DirWorker {
         hasAudio = hasAudio(dir);
         hasImages = hasImages(dir);
         hasInnerFolder = hasInnerFolder(dir);
+        hasMultiCD = hasMultiCD(dir);
 
         if (hasImages) {
 
@@ -119,16 +127,60 @@ public class DirWorker {
             }
         }
 
-        if (hasAudio) {
-            String[] filter = {"mp3"};
-            LinkedList<File> mp3List = (LinkedList) FileUtils.listFiles(dir, filter, false);
-            AudioWorker audioWorker = new AudioWorker(mp3List);
-            audioWorker.setLogOutput(logOutput);
-            audioWorker.setInitFolder(initFolder);
-            audioWorker.setParentFolder(parentFolder);
-            audioWorker.process();
+        if (hasMultiCD) {
+            processAudio(dir, hasMultiCD);
+        } else {
+            if (hasAudio) {
+                processAudio(dir, hasMultiCD);
+            }
+        }
+    }
+
+    private void processAudio(File dir, boolean hasMultiCD) throws IOException,
+            TagException,
+            ReadOnlyFileException,
+            InvalidAudioFrameException,
+            CannotReadException {
+        File[] directories = null;
+        String[] filter = {"mp3"};
+        if (hasMultiCD) {
+            directories = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File current, String name) {
+                    return new File(current, name).isDirectory();
+                }
+            });
+        } else {
+            directories = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".mp3");
+                }
+            });
         }
 
+        int cdCount = 0;
+
+        HashMap<File, Integer> map = new HashMap<>();
+
+        for (File file : directories) {
+            if (hasMultiCD) {
+                cdCount++;
+                for (File mp3 : FileUtils.listFiles(file, filter, false)) {
+                    map.put(mp3, cdCount);
+                }
+            } else {
+                map.put(file, 1);
+            }
+        }
+
+        AudioWorker audioWorker = new AudioWorker(map);
+        audioWorker.setLogOutput(logOutput);
+        audioWorker.setInitFolder(initFolder);
+        audioWorker.setParentFolder(parentFolder);
+        audioWorker.setFolderContent(dir.listFiles());
+        audioWorker.setHasMultiCD(hasMultiCD);
+        audioWorker.process();
     }
 
     private boolean hasAudio(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
@@ -169,15 +221,24 @@ public class DirWorker {
         }
     }
 
-    private boolean hasCDFolder(File dir) {
-        LinkedList<File> folderList = (LinkedList) FileUtils.listFilesAndDirs(dir,
-                new NotFileFilter(TrueFileFilter.INSTANCE),
-                DirectoryFileFilter.DIRECTORY);
-        if (folderList.size() > 1) {
-            return true;
-        } else {
-            return false;
+    private boolean hasMultiCD(File dir) {
+        File[] directories = dir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File current, String name) {
+                return new File(current, name).isDirectory();
+            }
+        });
+
+        boolean multicd = false;
+        if (directories.length > 1) {
+            for (File directory : directories) {
+                if (directory.getName().matches("(?i)^(cd |cd)\\d+")) {
+                    multicd = true;
+                }
+            }
         }
+
+        return multicd;
     }
 
     private int getFolderDepth(File dir) {
@@ -202,4 +263,5 @@ public class DirWorker {
     public void setLogOutput(LogOutput logOutput) {
         this.logOutput = logOutput;
     }
+
 }

@@ -12,6 +12,7 @@ public class Record {
     private Artist artist;
     private ArrayList<Genre> genres;
     private ArrayList<Artist> subArtists;
+    private ArrayList<Issue> issues;
 
     public Record(String type) {
         this.rating = "";
@@ -91,6 +92,12 @@ public class Record {
             }
         }*/
     }
+    
+    public void printIssues(){
+        for (Issue is : issues) {
+            is.printAll();
+        }
+    }
 
     public String getName() {
         return name;
@@ -157,6 +164,14 @@ public class Record {
 
     public void setArtist(Artist artist) {
         this.artist = artist;
+    }
+
+    public ArrayList<Issue> getIssues() {
+        return issues;
+    }
+
+    public void setIssues(ArrayList<Issue> issues) {
+        this.issues = issues;
     }
 
 }
