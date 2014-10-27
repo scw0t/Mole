@@ -1,4 +1,3 @@
-
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -10,7 +9,7 @@ import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
 public class Process {
-    
+
     private LogOutput logOutput;
 
     private File initDir;
@@ -23,9 +22,14 @@ public class Process {
 
     public void init() throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
-        DirWorker dirWorker = new DirWorker(initDir);
-        dirWorker.setLogOutput(logOutput);
-        dirWorker.searchDirs();
+        if (initDir.exists()) {
+            DirWorker dirWorker = new DirWorker(initDir);
+            dirWorker.setLogOutput(logOutput);
+            dirWorker.searchDirs();
+        } else {
+            System.out.println("Директории \"" + initDir.getAbsolutePath() + "\" не существует!");
+        }
+
     }
 
     public void setLogOutput(LogOutput logOutput) {

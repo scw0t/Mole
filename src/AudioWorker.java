@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,12 +12,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jaudiotagger.audio.AudioFile;
+import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.CannotWriteException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
@@ -53,7 +57,7 @@ public class AudioWorker {
     private boolean hasMultiCD;
     private boolean issueChoosed = false;
     private Issue selectedIssue;
-    private IssuesChooser issuesChooser;
+    //private IssuesChooser issuesChooser;
 
     private String country;
     private String artistGenres;
@@ -61,6 +65,10 @@ public class AudioWorker {
     private String artist;
     private String albumYear;
     private String albumType;
+    private String attributes;
+    private boolean processed;
+    private boolean keyPressed;
+    private IssuesChooser chooser;
 
     private RYMParser parser;
 
@@ -77,14 +85,16 @@ public class AudioWorker {
         albumYear = "";
         albumType = "";
         this.audioList = audioList;
+        keyPressed = false;
     }
 
-    public void process() throws KeyNotFoundException,
+    public boolean process() throws KeyNotFoundException,
             FieldDataInvalidException,
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         va = isVA();
 
@@ -150,43 +160,66 @@ public class AudioWorker {
                 }
 
                 if (!parser.getRecord().getIssues().isEmpty()) {
-                    issuesChooser = new IssuesChooser();
-                    issuesChooser.setIssues(parser.getRecord().getIssues());
-                    issuesChooser.init();
-
-                    issuesChooser.getOkButton().setOnAction(new EventHandler<ActionEvent>() {
+                    Task task = new Task() {
                         @Override
-                        public void handle(ActionEvent t) {
-                            try {
-                                issueChoosed = true;
-                                selectedIssue = issuesChooser.getSelectedIssue();
-                                editTracks();
-                                issuesChooser.close();
-                            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException ex) {
-                                Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                    });
+                        protected Object call() throws Exception {
+                            Platform.runLater(new Runnable() {
 
-                    issuesChooser.getCancelButton().setOnAction(new EventHandler<ActionEvent>() {
-                        @Override
-                        public void handle(ActionEvent t) {
-                            try {
-                                issueChoosed = false;
-                                editTracks();
-                                issuesChooser.close();
-                            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException ex) {
-                                Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                                @Override
+                                public void run() {
+                                    setChooser(new IssuesChooser());
+                                    getChooser().setIssues(parser.getRecord().getIssues());
+                                    getChooser().init();
+
+                                    getChooser().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
+                                        @Override
+                                        public void handle(ActionEvent t) {
+                                            try {
+                                                issueChoosed = true;
+                                                selectedIssue = getChooser().getSelectedIssue();
+                                                editTracks();
+                                                getChooser().close();
+                                                setKeyPressed(true);
+                                            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                                                Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
+                                            }
+                                        }
+                                    });
+
+                                    getChooser().getCancelButton().setOnAction(new EventHandler<ActionEvent>() {
+                                        @Override
+                                        public void handle(ActionEvent t) {
+                                            try {
+                                                issueChoosed = false;
+                                                editTracks();
+                                                setKeyPressed(true);
+                                                getChooser().close();
+                                            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                                                Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
+                                            }
+                                        }
+                                    });
+                                    
+                                    
+                                    
+                                    getChooser().showAndWait();
+
+                                }
+                            });
+                            return null;
                         }
-                    });
+                    };
+                    Thread thread = new Thread(task);
+                    thread.setDaemon(true);
+                    thread.start();
                 }
-
+                processed = true;
             } else {
+                processed = false;
                 System.out.println("Запись не найдена");
             }
         }
-
+        return processed;
     }
 
     private void editTracks() throws KeyNotFoundException,
@@ -194,7 +227,8 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
 
         normalizeTracklist();
 
@@ -202,7 +236,7 @@ public class AudioWorker {
             Iterator it = sortByValue(audioList).entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry pairs = (Map.Entry) it.next();
-                MP3File mp3 = new MP3File((File) pairs.getKey());
+                MP3File mp3 = readMp3File((File) pairs.getKey());
 
                 if (!mp3.getTag().getFirst(FieldKey.DISC_NO).isEmpty()) {
                     mp3.getTag().setField(FieldKey.DISC_NO, (String) pairs.getValue());
@@ -213,7 +247,7 @@ public class AudioWorker {
             Iterator it = sortByValue(audioList).entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry pairs = (Map.Entry) it.next();
-                MP3File mp3 = new MP3File((File) pairs.getKey());
+                MP3File mp3 = readMp3File((File) pairs.getKey());
                 if (!recordGenres.isEmpty()) {
                     mp3.getTag().setField(FieldKey.GENRE, recordGenres);
                 }
@@ -273,11 +307,15 @@ public class AudioWorker {
             }
 
             if (selectedIssue.getIssueLabel() != null) {
-                file.getTag().setField(FieldKey.RECORD_LABEL, selectedIssue.getIssueLabel());
+                if (!selectedIssue.getIssueLabel().equals("Unknown")) {
+                    file.getTag().setField(FieldKey.RECORD_LABEL, selectedIssue.getIssueLabel());
+                }
             }
 
             if (selectedIssue.getCatNumber() != null) {
-                file.getTag().setField(FieldKey.CATALOG_NO, selectedIssue.getCatNumber());
+                if (!selectedIssue.getCatNumber().equals("")) {
+                    file.getTag().setField(FieldKey.CATALOG_NO, selectedIssue.getCatNumber());
+                }
             }
 
             /*if (selectedIssue.getIssueYear() != null) {
@@ -317,6 +355,14 @@ public class AudioWorker {
 
         // Проверяем compilations
         for (Record record : parser.getCompRecords()) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+                parser.setCurrentAlbumUrl(record.getLink());
+                parser.parseAlbumInfo();
+            }
+        }
+
+        for (Record record : parser.getBootlegRecords()) {
             if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
@@ -382,7 +428,8 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         if (hasMultiCD) {
             String currCD = "0";
             int count = 0;
@@ -419,7 +466,7 @@ public class AudioWorker {
             Iterator it = sortByValue(audioList).entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry pairs = (Map.Entry) it.next();
-                MP3File mp3 = new MP3File((File) pairs.getKey());
+                MP3File mp3 = readMp3File((File) pairs.getKey());
 
                 count++;
                 if (count < 10) {
@@ -461,7 +508,8 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
 
         int count = 0;
         String track = "";
@@ -470,8 +518,7 @@ public class AudioWorker {
         Iterator it = sortByValue(audioList).entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pairs = (Map.Entry) it.next();
-            MP3File mp3 = new MP3File((File) pairs.getKey());
-
+            MP3File mp3 = readMp3File((File) pairs.getKey());
             if (!StringUtils.isEmpty(mp3.getTag().getFirst(FieldKey.TITLE))
                     && !StringUtils.isEmpty(mp3.getTag().getFirst(
                                     FieldKey.TRACK))) {
@@ -550,7 +597,8 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         if (va) {
             return "VA";
         } else {
@@ -584,12 +632,13 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         String albumString = "";
 
         HashMap<String, String> yearAlbum = new HashMap<>();
         for (Iterator<File> i = audioList.keySet().iterator(); i.hasNext();) {
-            MP3File file = new MP3File((File) i.next());
+            MP3File file = readMp3File(i.next());
             yearAlbum.put(file.getTag().getFirst(FieldKey.YEAR),
                     validateName(file.getTag().getFirst(FieldKey.ALBUM)));
         }
@@ -619,9 +668,12 @@ public class AudioWorker {
             }
 
             if (issueChoosed) {
-                albumString += " [" + selectedIssue.getIssueYear()
-                        + ", " + validateName(selectedIssue.getIssueLabel())
-                        + ", " + validateName(selectedIssue.getCatNumber()) + "]";
+                if (!selectedIssue.getIssueLabel().equals("Unknown")
+                        && !selectedIssue.getCatNumber().equals("")) {
+                    albumString += " [" + selectedIssue.getIssueYear()
+                            + ", " + validateName(selectedIssue.getIssueLabel())
+                            + ", " + validateName(selectedIssue.getCatNumber()) + "]";
+                }
             }
         } else {
             for (Map.Entry<String, String> me : set) {
@@ -642,7 +694,8 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         File artistFolder;
         File albumFolder;
 
@@ -755,11 +808,13 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         String artistName = "";
         int count = 0;
         for (Iterator<File> i = audioList.keySet().iterator(); i.hasNext();) {
-            MP3File file = new MP3File((File) i.next());
+            MP3File file = readMp3File(i.next());
+            //MP3File file = new MP3File();
             count++;
             if (!file.getTag().getFirst(FieldKey.ARTIST).isEmpty()) {
                 if (count == 1) {
@@ -783,11 +838,12 @@ public class AudioWorker {
             IOException,
             TagException,
             ReadOnlyFileException,
-            InvalidAudioFrameException {
+            InvalidAudioFrameException,
+            CannotReadException {
         String albumName = "";
         int count = 0;
         for (Iterator<File> i = audioList.keySet().iterator(); i.hasNext();) {
-            MP3File file = new MP3File((File) i.next());
+            MP3File file = readMp3File(i.next());
             count++;
             if (!file.getTag().getFirst(FieldKey.ALBUM).isEmpty()) {
                 if (count == 1) {
@@ -886,11 +942,38 @@ public class AudioWorker {
         return true;
     }
 
+    private MP3File readMp3File(File file) throws CannotReadException, IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
+        MP3File mp3file;
+        try {
+            mp3file = (MP3File) AudioFileIO.read(file);
+        } catch (FileNotFoundException e) {
+            System.out.println(file.getAbsolutePath() + " - read file exception!");
+            mp3file = (MP3File) AudioFileIO.read(new File(file.getAbsolutePath()));
+        }
+        return mp3file;
+    }
+
     /**
      * @param folderContent the folderContent to set
      */
     public void setFolderContent(File[] folderContent) {
         this.folderContent = folderContent;
+    }
+
+    public boolean isKeyPressed() {
+        return keyPressed;
+    }
+
+    public void setKeyPressed(boolean keyPressed) {
+        this.keyPressed = keyPressed;
+    }
+
+    public IssuesChooser getChooser() {
+        return chooser;
+    }
+
+    public void setChooser(IssuesChooser chooser) {
+        this.chooser = chooser;
     }
 
 }

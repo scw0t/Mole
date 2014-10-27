@@ -177,14 +177,15 @@ public class RYMParser implements Runnable {
             Document doc = Jsoup.connect(currentAlbumUrl)
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
-            
+
             String fixUrl = fixAlbumUrl(doc);
-            
+
             if (!fixUrl.equals(doc.baseUri())) {
                 currentAlbumUrl = fixUrl;
+                System.out.println(currentAlbumUrl);
                 doc = Jsoup.connect(currentAlbumUrl)
-                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                    .timeout(20000).get();
+                        .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                        .timeout(20000).get();
             }
 
             Element contentTable = doc.getElementsByClass("album_info").first();
@@ -308,7 +309,14 @@ public class RYMParser implements Runnable {
         ArrayList<Issue> issues = new ArrayList<>();
 
         if (issuesElements != null) {
-            for (int i = 1; i < issuesElements.size(); i++) {
+            int issueIndex = 0;
+            
+            if (issuesElements.first().hasClass("issue_info") &&
+                    issuesElements.first().hasClass("release_view")) {
+                issueIndex = 1;
+            }
+            
+            for (int i = issueIndex; i < issuesElements.size(); i++) {
                 Issue issue = new Issue();
                 if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
                     issue.setLink(issuesElements.get(i).getElementsByClass("sametitle").first().attr("href"));
@@ -349,14 +357,23 @@ public class RYMParser implements Runnable {
                 }
 
                 if (issuesElements.get(i).getElementsByClass("issue_label") != null) {
-                    String[] labelInfo = issuesElements.get(i).getElementsByClass("issue_label").first().text().split(" / ");
+                    String[] labelInfo = issuesElements.get(i).getElementsByClass("issue_label").first().text().replaceAll("n/a / ", "").split(" / ");
                     if (labelInfo.length != 0) {
-                        if (labelInfo[0] != null) {
-                            issue.setIssueLabel(labelInfo[0]);
+                        if (labelInfo.length > 1) {
+                            if (labelInfo[0] != null) {
+                                issue.setIssueLabel(labelInfo[0]);
+                            }
+
+                            if (labelInfo[1] != null) {
+                                issue.setCatNumber(labelInfo[1].replaceAll(" / ", ", "));
+                            }
+                        } else {
+                            if (labelInfo[0] != null) {
+                                issue.setCatNumber(labelInfo[0]);
+                                issue.setIssueLabel("Unknown");
+                            }
                         }
-                        if (labelInfo[1] != null) {
-                            issue.setCatNumber(labelInfo[1].replaceAll(" / ", ", "));
-                        }
+
                     }
                 }
 
@@ -379,12 +396,19 @@ public class RYMParser implements Runnable {
         Elements issuesElements = issuesTable.getElementsByClass("issue_info");
 
         if (issuesElements != null) {
-            if (!issuesElements.get(1).getElementsByClass("sametitle").isEmpty()) {
-                url = issuesElements.get(1).getElementsByClass("sametitle").first().attr("href");
+            int issueIndex = 0;
+            
+            if (issuesElements.first().hasClass("issue_info") &&
+                    issuesElements.first().hasClass("release_view")) {
+                issueIndex = 1;
+            }
+            
+            if (!issuesElements.get(issueIndex).getElementsByClass("sametitle").isEmpty()) {
+                url = issuesElements.get(issueIndex).getElementsByClass("sametitle").first().attr("href");
             }
             if (url.isEmpty()) {
-                if (!issuesElements.get(1).getElementsByClass("issue_title").isEmpty()) {
-                    url = issuesElements.get(1).getElementsByClass("issue_title").first().
+                if (!issuesElements.get(issueIndex).getElementsByClass("issue_title").isEmpty()) {
+                    url = issuesElements.get(issueIndex).getElementsByClass("issue_title").first().
                             getElementsByTag("a").attr("href");
                 }
             }

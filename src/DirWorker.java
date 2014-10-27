@@ -1,16 +1,16 @@
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -34,6 +34,8 @@ public class DirWorker {
     private boolean hasImages = false;
     private boolean hasInnerFolder = false;
     private boolean hasMultiCD = false;
+    private boolean keyPressed = false;
+    private IssuesChooser chooser;
 
     public DirWorker(File initFolder) {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
@@ -43,12 +45,78 @@ public class DirWorker {
     }
 
     public void searchDirs() throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
-        LinkedList<File> directories = (LinkedList) FileUtils.listFilesAndDirs(initFolder,
+        final LinkedList<File> directories = (LinkedList) FileUtils.listFilesAndDirs(initFolder,
                 new NotFileFilter(TrueFileFilter.INSTANCE),
                 DirectoryFileFilter.DIRECTORY);
 
-        for (Iterator iterator = directories.iterator(); iterator.hasNext();) {
-            File file = (File) iterator.next();
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        new Thread(new Task() {
+            @Override
+            protected Object call() throws Exception {
+                for (final File dir : directories) {
+                    keyPressed = false;
+                    new Thread(new Task() {
+                        @Override
+                        public Object call() {
+                            System.out.println("Doing some process");
+                            try {
+                                Platform.runLater(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        if (dir.isDirectory()) {
+                                            if (!getCurrentFolder(dir).equals("0")) {
+                                                parentFolder = new File(getCurrentFolder(dir));
+                                            }
+
+                                            try {
+                                                process(dir);
+                                            } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                                                Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
+                                            }
+                                        }
+                                        if (getChooser() != null) {
+                                            keyPressed = getChooser().getOkButton().isPressed();
+                                        }
+                                    }
+                                });
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            } finally {
+                                latch.countDown();
+                            }
+
+                            return null;
+                        }
+                    }).start();
+
+                    while (!keyPressed) {
+                        System.out.println("Await");
+                        try {
+                            latch.await();
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+
+                    Platform.runLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                System.out.println(dir.getCanonicalFile());
+                            } catch (IOException ex) {
+                                Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                            System.out.println("Done");
+                        }
+                    });
+                }
+
+                return null;
+            }
+        }).start();
+
+        /*for (File file : directories) {
             if (file.isDirectory()) {
                 if (!getCurrentFolder(file).equals("0")) {
                     parentFolder = new File(getCurrentFolder(file));
@@ -56,22 +124,16 @@ public class DirWorker {
 
                 process(file);
             }
-
-			//System.out.println();
-			/*System.out.println(file.getAbsolutePath() 
-             + " ##### " + hasAudio(file) 
-             + " @@@@@ " + hasImages(file)
-             + " ^^^^^ " + hasInnerFolder(file));*/
-            //hasAudio(file);
-        }
+        }*/
 
     }
 
-    private void process(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
+    private boolean process(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         hasAudio = hasAudio(dir);
         hasImages = hasImages(dir);
         hasInnerFolder = hasInnerFolder(dir);
         hasMultiCD = hasMultiCD(dir);
+        boolean processed = false;
 
         if (hasImages) {
 
@@ -128,15 +190,16 @@ public class DirWorker {
         }
 
         if (hasMultiCD) {
-            processAudio(dir, hasMultiCD);
+            processed = processAudio(dir, hasMultiCD);
         } else {
             if (hasAudio) {
-                processAudio(dir, hasMultiCD);
+                processed = processAudio(dir, hasMultiCD);
             }
         }
+        return processed;
     }
 
-    private void processAudio(File dir, boolean hasMultiCD) throws IOException,
+    private boolean processAudio(File dir, boolean hasMultiCD) throws IOException,
             TagException,
             ReadOnlyFileException,
             InvalidAudioFrameException,
@@ -180,7 +243,10 @@ public class DirWorker {
         audioWorker.setParentFolder(parentFolder);
         audioWorker.setFolderContent(dir.listFiles());
         audioWorker.setHasMultiCD(hasMultiCD);
-        audioWorker.process();
+        //keyPressed = audioWorker.isKeyPressed();
+        boolean processed = audioWorker.process();
+        setChooser(audioWorker.getChooser());
+        return processed;
     }
 
     private boolean hasAudio(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
@@ -262,6 +328,14 @@ public class DirWorker {
 
     public void setLogOutput(LogOutput logOutput) {
         this.logOutput = logOutput;
+    }
+
+    public IssuesChooser getChooser() {
+        return chooser;
+    }
+
+    public void setChooser(IssuesChooser chooser) {
+        this.chooser = chooser;
     }
 
 }

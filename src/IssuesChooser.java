@@ -1,13 +1,12 @@
 import java.util.ArrayList;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
@@ -49,17 +48,20 @@ public class IssuesChooser extends Stage {
         
         VBox vBox = new VBox(5);
         vBox.setPadding(new Insets(10));
+        
+        ScrollPane scrollPane = new ScrollPane();
 
         for (Issue issue : issues) {
+            
             vBox.getChildren().add(new IssueHBox(5, issue, toggleGroup));
         }
         
         vBox.getChildren().add(buttonsBox);
         
-        this.setScene(new Scene(vBox, 800, 600));
+        scrollPane.setContent(vBox);
+        
+        this.setScene(new Scene(scrollPane, 800, 600));
         this.setTitle("Choose Issue");
-
-        show();
     }
 
     public void setIssues(ArrayList<Issue> issues) {
@@ -90,6 +92,7 @@ public class IssuesChooser extends Stage {
             this.init();
         }
 
+        
         public void init() {
             VBox vBox = new VBox();
             HBox hBox1 = new HBox(5);
