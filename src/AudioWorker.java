@@ -57,7 +57,8 @@ public class AudioWorker {
     private boolean hasMultiCD;
     private boolean issueChoosed = false;
     private Issue selectedIssue;
-    //private IssuesChooser issuesChooser;
+    private IssuesChooser chooser;
+    private CatDialog catDialog;
 
     private String country;
     private String artistGenres;
@@ -66,9 +67,7 @@ public class AudioWorker {
     private String albumYear;
     private String albumType;
     private String attributes;
-    private boolean processed;
-    private boolean keyPressed;
-    private IssuesChooser chooser;
+    private boolean processed = false;
 
     private RYMParser parser;
 
@@ -85,7 +84,6 @@ public class AudioWorker {
         albumYear = "";
         albumType = "";
         this.audioList = audioList;
-        keyPressed = false;
     }
 
     public boolean process() throws KeyNotFoundException,
@@ -118,8 +116,10 @@ public class AudioWorker {
 
             } else {
                 if (parser.parseArtistInfo(parser.getAudioArtistName())) {
-                    if (parser.getSingleRecords() != null) {
+                    try {
                         checkDiscography(parser);
+                    } catch (NullPointerException e) {
+                        System.out.println(parser.getSingleRecords().getClass().getName() + "- Null");
                     }
                 }
             }
@@ -131,7 +131,7 @@ public class AudioWorker {
 
                 if (!parser.getArtist().getGenres().isEmpty()) {
                     artistGenres = parser.getArtist().firstThreeGenresToString();
-                } else if (!parser.getRecord().getGenres().isEmpty()) {
+                } else if (parser.getRecord() != null && !parser.getRecord().getGenres().isEmpty()) {
                     artistGenres = parser.getRecord().firstThreeGenresToString();
                 }
 
@@ -145,7 +145,7 @@ public class AudioWorker {
             if (parser.getRecord() != null) {
                 if (!parser.getRecord().getGenres().isEmpty()) {
                     recordGenres = parser.getRecord().allGenresToString();
-                } else if (!parser.getArtist().getGenres().isEmpty()) {
+                } else if (parser.getArtist() != null && !parser.getArtist().getGenres().isEmpty()) {
                     recordGenres = parser.getArtist().allGenresToString();
                 }
 
@@ -160,66 +160,86 @@ public class AudioWorker {
                 }
 
                 if (!parser.getRecord().getIssues().isEmpty()) {
-                    Task task = new Task() {
+                    Platform.runLater(new Runnable() {
+
                         @Override
-                        protected Object call() throws Exception {
-                            Platform.runLater(new Runnable() {
+                        public void run() {
 
-                                @Override
-                                public void run() {
-                                    setChooser(new IssuesChooser());
-                                    getChooser().setIssues(parser.getRecord().getIssues());
-                                    getChooser().init();
-
-                                    getChooser().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
-                                        @Override
-                                        public void handle(ActionEvent t) {
-                                            try {
-                                                issueChoosed = true;
-                                                selectedIssue = getChooser().getSelectedIssue();
-                                                editTracks();
-                                                getChooser().close();
-                                                setKeyPressed(true);
-                                            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                                                Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
-                                            }
-                                        }
-                                    });
-
-                                    getChooser().getCancelButton().setOnAction(new EventHandler<ActionEvent>() {
-                                        @Override
-                                        public void handle(ActionEvent t) {
-                                            try {
-                                                issueChoosed = false;
-                                                editTracks();
-                                                setKeyPressed(true);
-                                                getChooser().close();
-                                            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                                                Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
-                                            }
-                                        }
-                                    });
-                                    
-                                    
-                                    
-                                    getChooser().showAndWait();
-
+                            try {
+                                if (getCatDialog() == null) {
+                                    setCatDialog(new CatDialog());
+                                    getCatDialog().initGUI();
                                 }
-                            });
-                            return null;
+
+                                getCatDialog().setContent(parser.getRecord().getIssues());
+
+                                getCatDialog().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
+                                    @Override
+                                    public void handle(ActionEvent t) {
+                                        try {
+                                            issueChoosed = true;
+                                            if (getCatDialog().getCatList().getItems() != null) {
+                                                System.out.println(getCatDialog().getCatList().getSelectionModel().getSelectedItem().getIssue().getCatNumber());
+                                                selectedIssue = getCatDialog().getCatList().getSelectionModel().getSelectedItem().getIssue();
+                                                editTracks();
+                                                //DirWorker.keySwitch.set(true);
+                                                /*if (getCatDialog().getOkButton().isPressed()) {
+                                                    
+                                                 }*/
+                                                getCatDialog().hide();
+
+                                            } else {
+                                                System.out.println("null");
+                                            }
+                                        } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                                            Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
+                                        } finally {
+                                            //DirWorker.latch.countDown();
+                                        }
+                                    }
+                                });
+
+                                getCatDialog().getCancelButton().setOnAction(new EventHandler<ActionEvent>() {
+                                    @Override
+                                    public void handle(ActionEvent t) {
+                                        try {
+                                            issueChoosed = false;
+                                            editTracks();
+                                            getCatDialog().hide();
+                                        } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                                            Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
+                                        }
+                                    }
+                                });
+
+                                if (!getCatDialog().isShowing()) {
+                                    getCatDialog().showAndWait();
+
+                                    while (!DirWorker.keyPressed) {
+                                        System.out.println("Await: ");
+                                        try {
+                                            DirWorker.latch.await();
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace();
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
-                    };
-                    Thread thread = new Thread(task);
-                    thread.setDaemon(true);
-                    thread.start();
+                    });
+
                 }
                 processed = true;
             } else {
-                processed = false;
                 System.out.println("Запись не найдена");
+                processed = false;
             }
         }
+
         return processed;
+
     }
 
     private void editTracks() throws KeyNotFoundException,
@@ -338,7 +358,7 @@ public class AudioWorker {
 
         // Проверяем альбомы
         for (Record record : parser.getAlbumRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
@@ -346,7 +366,7 @@ public class AudioWorker {
 
         // Проверяем live albums
         for (Record record : parser.getLiveRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
@@ -355,7 +375,7 @@ public class AudioWorker {
 
         // Проверяем compilations
         for (Record record : parser.getCompRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
@@ -363,7 +383,7 @@ public class AudioWorker {
         }
 
         for (Record record : parser.getBootlegRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
@@ -372,7 +392,7 @@ public class AudioWorker {
 
         // Проверяем va
         for (Record record : parser.getVaRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
@@ -392,7 +412,7 @@ public class AudioWorker {
             }
 
             System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
@@ -414,7 +434,7 @@ public class AudioWorker {
                 }
             }
 
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) < 2) {
+            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
                 System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
@@ -515,9 +535,7 @@ public class AudioWorker {
         String track = "";
         File renamedFile;
 
-        Iterator it = sortByValue(audioList).entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry pairs = (Map.Entry) it.next();
+        for (Map.Entry pairs : sortByValue(audioList).entrySet()) {
             MP3File mp3 = readMp3File((File) pairs.getKey());
             if (!StringUtils.isEmpty(mp3.getTag().getFirst(FieldKey.TITLE))
                     && !StringUtils.isEmpty(mp3.getTag().getFirst(
@@ -616,7 +634,7 @@ public class AudioWorker {
             }
 
             if (!artistGenres.isEmpty()) {
-                artist += artistGenres;
+                artist += validateName(artistGenres);
             }
 
             if (!country.isEmpty() || !artistGenres.isEmpty()) {
@@ -749,8 +767,9 @@ public class AudioWorker {
                         FileUtils.moveFileToDirectory(file, albumFolder, false);
                         moved = true;
                     }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     System.out.println("move() exception occures");
+                    //e.printStackTrace();
                     moved = false;
                 }
             }
@@ -943,11 +962,13 @@ public class AudioWorker {
     }
 
     private MP3File readMp3File(File file) throws CannotReadException, IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException {
-        MP3File mp3file;
+        MP3File mp3file = null;
         try {
             mp3file = (MP3File) AudioFileIO.read(file);
         } catch (FileNotFoundException e) {
             System.out.println(file.getAbsolutePath() + " - read file exception!");
+            File f = new File(file.getAbsolutePath());
+            //readMp3File(f);
             mp3file = (MP3File) AudioFileIO.read(new File(file.getAbsolutePath()));
         }
         return mp3file;
@@ -960,20 +981,12 @@ public class AudioWorker {
         this.folderContent = folderContent;
     }
 
-    public boolean isKeyPressed() {
-        return keyPressed;
+    public CatDialog getCatDialog() {
+        return catDialog;
     }
 
-    public void setKeyPressed(boolean keyPressed) {
-        this.keyPressed = keyPressed;
-    }
-
-    public IssuesChooser getChooser() {
-        return chooser;
-    }
-
-    public void setChooser(IssuesChooser chooser) {
-        this.chooser = chooser;
+    public void setCatDialog(CatDialog catDialog) {
+        this.catDialog = catDialog;
     }
 
 }

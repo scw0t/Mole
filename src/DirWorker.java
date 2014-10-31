@@ -2,15 +2,14 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.concurrent.Task;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -34,14 +33,28 @@ public class DirWorker {
     private boolean hasImages = false;
     private boolean hasInnerFolder = false;
     private boolean hasMultiCD = false;
-    private boolean keyPressed = false;
-    private IssuesChooser chooser;
+    static volatile CustomBooleanProperty keySwitch;
+    static CountDownLatch latch;
+    static boolean keyPressed;
+
+    private CatDialog catDialog;
 
     public DirWorker(File initFolder) {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         this.initFolder = initFolder;
         this.parentFolder = new File(initFolder.getAbsoluteFile() + "\\temp");
         initDepth = getFolderDepth(initFolder);
+        keySwitch = new CustomBooleanProperty();
+        keySwitch.set(false);
+        Platform.runLater(new Task() {
+            @Override
+            public Object call() {
+                catDialog = new CatDialog();
+                catDialog.initGUI();
+                return null;
+            }
+        });
+
     }
 
     public void searchDirs() throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
@@ -49,7 +62,20 @@ public class DirWorker {
                 new NotFileFilter(TrueFileFilter.INSTANCE),
                 DirectoryFileFilter.DIRECTORY);
 
-        final CountDownLatch latch = new CountDownLatch(1);
+        /*new Thread(new Runnable() {
+         @Override
+         public void run() {
+         Platform.runLater(new Task() {
+         @Override
+         public Object call() {
+         catDialog = new CatDialog();
+         catDialog.initGUI();
+         return null;
+         }
+         });
+         }
+         }).start();*/
+        latch = new CountDownLatch(1);
 
         new Thread(new Task() {
             @Override
@@ -71,12 +97,10 @@ public class DirWorker {
 
                                             try {
                                                 process(dir);
-                                            } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                                                keyPressed = catDialog.isKeyPressed();
+                                            } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException | InterruptedException ex) {
                                                 Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
                                             }
-                                        }
-                                        if (getChooser() != null) {
-                                            keyPressed = getChooser().getOkButton().isPressed();
                                         }
                                     }
                                 });
@@ -90,23 +114,21 @@ public class DirWorker {
                         }
                     }).start();
 
-                    while (!keyPressed) {
-                        System.out.println("Await");
-                        try {
-                            latch.await();
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
+                    /*if (hasAudio(dir)) {
+                        while (!keyPressed) {
+                            System.out.println("Await: " + dir.getAbsolutePath());
+                            try {
+                                latch.await();
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
                         }
-                    }
+                    }*/
 
                     Platform.runLater(new Runnable() {
                         @Override
                         public void run() {
-                            try {
-                                System.out.println(dir.getCanonicalFile());
-                            } catch (IOException ex) {
-                                Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
-                            }
+                            System.out.println(dir.getAbsolutePath());
                             System.out.println("Done");
                         }
                     });
@@ -116,24 +138,46 @@ public class DirWorker {
             }
         }).start();
 
-        /*for (File file : directories) {
-            if (file.isDirectory()) {
-                if (!getCurrentFolder(file).equals("0")) {
-                    parentFolder = new File(getCurrentFolder(file));
-                }
+        /*new Thread(new Runnable() {
+         @Override
+         public void run() {
+         for (final File dir : directories) {
+         keySwitch.set(true);
+         try {
+         System.out.println(dir.getName() + " waiting...");
 
-                process(file);
-            }
-        }*/
+         System.out.println(dir.getName() + " got access...");
+         if (dir.isDirectory()) {
+         if (!getCurrentFolder(dir).equals("0")) {
+         parentFolder = new File(getCurrentFolder(dir));
+         }
 
+         try {
+         process(dir);
+
+         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+         Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
+         }
+         }
+         } catch (InterruptedException ex) {
+         Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
+         }
+
+         if (getCatDialog() != null) {
+         //keySwitch = getCatDialog().getOkButton().isPressed();
+         }
+
+         }
+         }
+         }).start();*/
     }
 
-    private boolean process(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
+    private void process(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException, InterruptedException {
         hasAudio = hasAudio(dir);
         hasImages = hasImages(dir);
         hasInnerFolder = hasInnerFolder(dir);
         hasMultiCD = hasMultiCD(dir);
-        boolean processed = false;
+        keySwitch.set(false);
 
         if (hasImages) {
 
@@ -173,7 +217,7 @@ public class DirWorker {
                 if (!dir.getName().equals("Covers")) {
                     //File file = new File(dir.getParentFile() + "\\Covers");
                     //System.out.println(file.getAbsolutePath());
-                    dir.renameTo(new File(dir.getParentFile() + "\\Covers"));
+                    //dir.renameTo(new File(dir.getParentFile() + "\\Covers"));
                 }
             }
 
@@ -190,13 +234,18 @@ public class DirWorker {
         }
 
         if (hasMultiCD) {
-            processed = processAudio(dir, hasMultiCD);
+            try {
+                latch.await();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            processAudio(dir, hasMultiCD);
+
         } else {
             if (hasAudio) {
-                processed = processAudio(dir, hasMultiCD);
+                processAudio(dir, hasMultiCD);
             }
         }
-        return processed;
     }
 
     private boolean processAudio(File dir, boolean hasMultiCD) throws IOException,
@@ -243,10 +292,22 @@ public class DirWorker {
         audioWorker.setParentFolder(parentFolder);
         audioWorker.setFolderContent(dir.listFiles());
         audioWorker.setHasMultiCD(hasMultiCD);
-        //keyPressed = audioWorker.isKeyPressed();
-        boolean processed = audioWorker.process();
-        setChooser(audioWorker.getChooser());
-        return processed;
+        audioWorker.setCatDialog(catDialog);
+
+        audioWorker.process();
+
+        /*if (hasAudio(dir)) {
+            while (!keyPressed) {
+                System.out.println("Await: " + dir.getAbsolutePath());
+                try {
+                    latch.await();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }*/
+
+        return true;
     }
 
     private boolean hasAudio(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
@@ -330,12 +391,22 @@ public class DirWorker {
         this.logOutput = logOutput;
     }
 
-    public IssuesChooser getChooser() {
-        return chooser;
+    public CatDialog getCatDialog() {
+        return catDialog;
     }
 
-    public void setChooser(IssuesChooser chooser) {
-        this.chooser = chooser;
+    public void setCatDialog(CatDialog catDialog) {
+        this.catDialog = catDialog;
+    }
+
+    class CustomBooleanProperty extends SimpleBooleanProperty {
+
+        @Override
+        public void addListener(ChangeListener<? super Boolean> listener) {
+            super.addListener(listener); //To change body of generated methods, choose Tools | Templates.
+            System.out.println("Chanded: " + this.getName());
+        }
+
     }
 
 }

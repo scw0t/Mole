@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -145,10 +146,12 @@ public class RYMParser implements Runnable {
                                 ArrayList<Genre> artistGenres = new ArrayList<>();
                                 Elements genreElements = subTable.getElementsByClass("genre");
                                 for (Element element : genreElements) {
-                                    Genre genre = new Genre();
-                                    genre.setName(element.text());
-                                    genre.setLink(element.attr("href"));
-                                    artistGenres.add(genre);
+                                    if (!element.text().equals("Rock")) {
+                                        Genre genre = new Genre();
+                                        genre.setName(element.text());
+                                        genre.setLink(element.attr("href"));
+                                        artistGenres.add(genre);
+                                    }
                                 }
                                 getArtist().setGenres(artistGenres);
                                 break;
@@ -163,9 +166,10 @@ public class RYMParser implements Runnable {
             }
 
         } catch (IOException ex) {
-            ex.printStackTrace();
+            //ex.printStackTrace();
+            System.out.println("URL. Status=404");
             parsed = false;
-        }
+        } 
         return parsed;
     }
 
@@ -245,10 +249,12 @@ public class RYMParser implements Runnable {
                                     getElementsByClass("release_pri_genres").first();
                             Elements genresElements = element.getElementsByClass("genre");
                             for (Element genreElement : genresElements) {
-                                Genre genre = new Genre();
-                                genre.setName(genreElement.text());
-                                genre.setLink(genreElement.attr("href"));
-                                albumGenres.add(genre);
+                                if (!genreElement.text().equals("Rock")) {
+                                    Genre genre = new Genre();
+                                    genre.setName(genreElement.text());
+                                    genre.setLink(genreElement.attr("href"));
+                                    albumGenres.add(genre);
+                                }
                             }
                             record.setGenres(albumGenres);
                         }
@@ -310,12 +316,12 @@ public class RYMParser implements Runnable {
 
         if (issuesElements != null) {
             int issueIndex = 0;
-            
-            if (issuesElements.first().hasClass("issue_info") &&
-                    issuesElements.first().hasClass("release_view")) {
+
+            if (issuesElements.first().hasClass("issue_info")
+                    && issuesElements.first().hasClass("release_view")) {
                 issueIndex = 1;
             }
-            
+
             for (int i = issueIndex; i < issuesElements.size(); i++) {
                 Issue issue = new Issue();
                 if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
@@ -397,12 +403,12 @@ public class RYMParser implements Runnable {
 
         if (issuesElements != null) {
             int issueIndex = 0;
-            
-            if (issuesElements.first().hasClass("issue_info") &&
-                    issuesElements.first().hasClass("release_view")) {
+
+            if (issuesElements.first().hasClass("issue_info")
+                    && issuesElements.first().hasClass("release_view")) {
                 issueIndex = 1;
             }
-            
+
             if (!issuesElements.get(issueIndex).getElementsByClass("sametitle").isEmpty()) {
                 url = issuesElements.get(issueIndex).getElementsByClass("sametitle").first().attr("href");
             }
@@ -669,7 +675,7 @@ public class RYMParser implements Runnable {
                 Person person = new Person(string.split("\\(")[0].trim());
                 ArrayList<String> instruments = new ArrayList<>();
 
-                if (subStr != null) {
+                if (subStr != null && string.split("\\(").length > 1) {
                     String instrs = string.split("\\(")[1].trim();
 
                     if (instrs.endsWith(",")) {

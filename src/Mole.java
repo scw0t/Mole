@@ -1,20 +1,16 @@
 import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
-import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
-import javafx.event.ActionEvent;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
@@ -29,47 +25,25 @@ import org.musicbrainz.model.entity.ArtistWs2;
 import org.musicbrainz.model.entity.ReleaseGroupWs2;
 import org.musicbrainz.model.entity.ReleaseWs2;
 import org.musicbrainz.model.searchresult.ArtistResultWs2;
-import radams.gracenote.webapi.GracenoteException;
-import radams.gracenote.webapi.GracenoteMetadata;
-import radams.gracenote.webapi.GracenoteWebAPI;
 
 public class Mole extends Application {
 
-    private final String initDir = "G:\\test";
     static Stage primaryStage;
 
     @Override
-    public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException, GracenoteException {
+    public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
-        VBox root = new VBox();
-        root.setPadding(new Insets(10));
-        root.setSpacing(10);
-        final TextField pathTextArea = new TextField(initDir);
-        Button btn = new Button();
+        
+        Scene scene = new Scene(new MainGUI(), 400, 600);
 
-        btn.setText("Run");
-        btn.setOnAction(new EventHandler<ActionEvent>() {
-
+        primaryStage.setTitle("hi!");
+        primaryStage.setScene(scene);
+        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
-            public void handle(ActionEvent event) {
-                try {
-                    LogOutput logOutput = new LogOutput();
-                    Process process = new Process(new File(pathTextArea.getText()));
-                    process.setLogOutput(logOutput);
-                    process.init();
-
-                } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                    Logger.getLogger(Mole.class.getName()).log(Level.SEVERE, null, ex);
-                }
+            public void handle(WindowEvent event) {
+                Platform.exit();
             }
         });
-
-        root.getChildren().addAll(btn, pathTextArea);
-
-        Scene scene = new Scene(root, 400, 600);
-
-        primaryStage.setTitle("Hello World!");
-        primaryStage.setScene(scene);
 
         primaryStage.show();
         this.primaryStage = primaryStage;
@@ -80,7 +54,11 @@ public class Mole extends Application {
          Logger.getLogger(Mole.class.getName()).log(Level.SEVERE, null, ex);
          }*/
         //gracenoteTest();
-        
+        /*try {
+         echonestTest();
+         } catch (EchoNestException ex) {
+         Logger.getLogger(Mole.class.getName()).log(Level.SEVERE, null, ex);
+         //        }*/
     }
 
     public static void main(String[] args) {
@@ -180,15 +158,32 @@ public class Mole extends Application {
         System.out.println("comment: " + tracklist.get(0).getRecording().getDisambiguation());
     }
 
-    private void gracenoteTest() throws GracenoteException {
+    /*private void gracenoteTest() throws GracenoteException {
         String clientID = "16430336";
         String clientTag = "F0C6EBDA21CDC1480EA44F1C3D504F9D";
         String userID = "264116179042661687-1A9143576C10CBAFB5E42829DCF98066";
         GracenoteWebAPI api = new GracenoteWebAPI(clientID, clientTag, userID);
         //GracenoteMetadata results = api.searchTrack("King Crimson", "The Great Deceiver", "The Talking Drum");
         GracenoteMetadata test2 = api.searchAlbum("Aguaturbia", "Aguaturbia");
+    }*/
+
+    private void echonestTest() throws EchoNestException {
+        String APIKey = "97SNZ1U81BZI1MTHR";
+
+        /*ArtistExamples sse = new ArtistExamples(APIKey);
+         sse.searchArtistByName("Arco Iris", 10);
+         sse.stats();*/
+        EchoNestAPI echoNest = new EchoNestAPI(APIKey);
+        echoNest.setTraceSends(true);
+        List<com.echonest.api.v4.Artist> artists = echoNest.searchArtists("After All");
+        if (artists.size() > 0) {
+            com.echonest.api.v4.Artist artist = artists.get(0);
+            System.out.println("Similar artists for " + artist.getName());
+            for (com.echonest.api.v4.Artist simArtist : artist.getSimilar(10)) {
+                System.out.println(" " + simArtist.getName());
+            }
+        }
+
     }
-
-
 
 }
