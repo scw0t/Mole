@@ -247,6 +247,10 @@ public class DirWorker {
             }
         }
     }
+    
+    public void testProcess(){
+        
+    }
 
     private boolean processAudio(File dir, boolean hasMultiCD) throws IOException,
             TagException,
@@ -320,32 +324,20 @@ public class DirWorker {
          System.out.println("not dir");
          }*/
         LinkedList<File> mp3List = (LinkedList) FileUtils.listFiles(dir, filter, false);
-        if (mp3List.size() != 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return mp3List.size() != 0;
     }
 
     private boolean hasImages(File dir) {
         String[] filter = {"jpg", "jpeg", "gif", "png"};
         LinkedList<File> imageList = (LinkedList) FileUtils.listFiles(dir, filter, false);
-        if (imageList.size() != 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return imageList.size() != 0;
     }
 
     private boolean hasInnerFolder(File dir) {
         LinkedList<File> folderList = (LinkedList) FileUtils.listFilesAndDirs(dir,
                 new NotFileFilter(TrueFileFilter.INSTANCE),
                 DirectoryFileFilter.DIRECTORY);
-        if (folderList.size() > 1) {
-            return true;
-        } else {
-            return false;
-        }
+        return folderList.size() > 1;
     }
 
     private boolean hasMultiCD(File dir) {

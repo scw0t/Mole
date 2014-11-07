@@ -35,6 +35,7 @@ public class Mole extends Application {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         
         Scene scene = new Scene(new MainGUI(), 400, 600);
+        scene.getStylesheets().add(getClass().getResource("toolbarStyle.css").toExternalForm());
 
         primaryStage.setTitle("hi!");
         primaryStage.setScene(scene);

@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.FXCollections;
@@ -16,12 +17,17 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBoxTreeItem;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
+import javafx.scene.control.cell.CheckBoxTreeCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import javax.swing.filechooser.FileSystemView;
 import org.controlsfx.control.CheckTreeView;
 
@@ -29,67 +35,68 @@ public class DirTreeView extends Stage {
 
     private CustomCheckTreeView cctv;
 
-    //private CustomCheckTreeView checkTreeView = null;
     public DirTreeView() {
+        setResizable(false);
     }
 
     public void drawGUI() throws FileNotFoundException, IOException {
         cctv = buildFileSystemBrowser();
-        VBox vBox = new VBox();
-        HBox buttonBox = new HBox();
-        buttonBox.setPadding(new Insets(5));
-        buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.setSpacing(20);
+        
+        //Кнопка Ok
         Button okButton = new Button("Ok");
         okButton.setMinWidth(60);
         okButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                System.out.println(cctv.getCheckModel().getCheckedItems());
+                //Получаем список выбранных папок
+                if (!MainGUI.dirList.isEmpty()) {
+                    MainGUI.dirList.clear();
+                }
+                
+                final Iterator<CustomCheckBoxTreeItem> iterator = cctv.getCheckModel().getCheckedItems().iterator();
+                
+                while (iterator.hasNext()) {
+                    CustomCheckBoxTreeItem next = iterator.next();
+                    MainGUI.dirList.add((File) next.getValue());
+                }
+                
                 DirTreeView.this.close();
             }
         });
 
+        //Кнопка Cancel
         Button cancelButton = new Button("Cancel");
         cancelButton.setMinWidth(60);
         cancelButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-
                 DirTreeView.this.close();
             }
         });
-
+        
+        HBox buttonBox = new HBox();
+        //buttonBox.setStyle("-fx-border-color: black;");
+        buttonBox.setPadding(new Insets(5));
+        buttonBox.setAlignment(Pos.CENTER);
+        buttonBox.setSpacing(20);
         buttonBox.getChildren().addAll(okButton, cancelButton);
 
+        VBox vBox = new VBox();
+        //vBox.setStyle("-fx-border-color: red;");
+        vBox.setMaxHeight(Double.MAX_VALUE);
         vBox.getChildren().addAll(cctv, buttonBox);
-
-        setScene(new Scene(vBox));
+        
+        BorderPane bp = new BorderPane(vBox);
+        bp.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        //bp.setPrefSize(BorderPane.USE_COMPUTED_SIZE, BorderPane.USE_COMPUTED_SIZE);
+        //bp.setScaleShape(true);
+        
+        Scene scene = new Scene(bp, 500, 700);
+        setScene(scene);
         show();
     }
-
-    private CustomCheckTreeView buildFileSystemBrowser() throws IOException {
-        CheckBoxTreeItem<File> root = new CheckBoxTreeItem<>();
-
-        for (File drive : findDrives()) {
-            root.getChildren().add(createNode(drive, true));
-        }
-
-        return new CustomCheckTreeView(root);
-    }
-
-    private CustomCheckBoxTreeItem createNode(final File f, boolean b) throws IOException {
-        return new CustomCheckBoxTreeItem(f, b);
-    }
-
-    /*public CustomCheckBoxTreeItem initCheckTreeItems() throws FileNotFoundException, IOException {
-     CustomCheckBoxTreeItem root = createNode(new File("/"), false);
-     //root.setExpanded(true);
-     for (File drive : findDrives()) {
-     root.getChildren().add(createNode(drive, true));
-     }
-     return root;
-     }*/
+    
+    //Возвращаем список локальных дисков
     private ArrayList<File> findDrives() {
         File[] drives = File.listRoots();
         FileSystemView fsv = FileSystemView.getFileSystemView();
@@ -105,17 +112,56 @@ public class DirTreeView extends Stage {
         return drivesList;
     }
 
-    class CustomCheckTreeView extends CheckTreeView {
+    //Формируем дерево папок
+    private CustomCheckTreeView buildFileSystemBrowser() throws IOException {
+        CheckBoxTreeItem<File> root = new CheckBoxTreeItem<>();
 
-        public CustomCheckTreeView() {
+        for (File drive : findDrives()) {
+            root.getChildren().add(createNode(drive, true));
         }
+        
+        return new CustomCheckTreeView(root);
+    }
+
+    //Формируем узлы дерева
+    private CustomCheckBoxTreeItem createNode(final File f, boolean b) throws IOException {
+        return new CustomCheckBoxTreeItem(f, b);
+    }
+
+    //Кастомный TreeView
+    class CustomCheckTreeView extends CheckTreeView {
 
         public CustomCheckTreeView(CheckBoxTreeItem root) {
             super(root);
             setShowRoot(false);
-            initModel();
-        }
+            setPrefHeight(660);
+            //Настраиваем отображаемые имена папок
+            setCellFactory(new Callback<TreeView<File>, TreeCell<File>>() {
 
+                @Override
+                public TreeCell<File> call(TreeView<File> p) {
+                    return new CheckBoxTreeCell<File>() {
+                        @Override
+                        public void updateItem(File item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (empty) {
+                                setText(null);
+                            } else {
+                                FileSystemView fsv = FileSystemView.getFileSystemView();
+                                String name = fsv.isDrive(item) ? fsv.getSystemDisplayName(item) : getItem().getName();
+                                setText(getItem() == null ? "" : name);
+                            }
+                        }
+                    };
+                }
+                
+            });
+
+            //initModel();
+        }
+        
+        //Отлавливание изменения списка выбранных элементов
+        //Может быть пригодится для потоковой фильтрации нужных папок
         private void initModel() {
             this.getCheckModel().getCheckedItems().addListener(new ListChangeListener<TreeItem<File>>() {
                 @Override
@@ -126,7 +172,8 @@ public class DirTreeView extends Stage {
         }
     }
 
-    class CustomCheckBoxTreeItem extends CheckBoxTreeItem<File> {
+    // Кастомизированный TreeViewItem
+    class CustomCheckBoxTreeItem extends CheckBoxTreeItem {
 
         private File dir;
         private boolean isLeaf;
@@ -136,29 +183,26 @@ public class DirTreeView extends Stage {
 
         public CustomCheckBoxTreeItem() {
             super();
-
         }
 
         public CustomCheckBoxTreeItem(File value, boolean isDrive) throws FileNotFoundException {
             super(value);
+
             ImageView imgView = new ImageView();
             Image icon = null;
             if (isDrive) {
-                icon = new Image(new FileInputStream("hdd.png"));
+                icon = new Image(new FileInputStream("hdd3.png"));
             } else {
-                icon = new Image(new FileInputStream("folder.png"));
+                icon = new Image(new FileInputStream("folder3.png"));
             }
             if (icon != null) {
                 imgView.setImage(icon);
                 setGraphic(imgView);
             }
-
-            dir = (File) value;
-            //setTitle(value.getName());
         }
 
         @Override
-        public ObservableList<TreeItem<File>> getChildren() {
+        public ObservableList<TreeItem<String>> getChildren() {
             if (isFirstTimeChildren) {
                 try {
                     isFirstTimeChildren = false;
@@ -181,8 +225,8 @@ public class DirTreeView extends Stage {
             return isLeaf;
         }
 
-        private ObservableList<TreeItem<File>> buildChildren(CustomCheckBoxTreeItem treeItem) throws IOException {
-            File f = treeItem.getValue();
+        private ObservableList<TreeItem> buildChildren(CustomCheckBoxTreeItem treeItem) throws IOException {
+            File f = (File) treeItem.getValue();
             if (f != null && f.isDirectory()) {
                 File[] files = f.listFiles(new FilenameFilter() {
                     @Override
@@ -191,77 +235,23 @@ public class DirTreeView extends Stage {
                     }
                 });
                 if (files != null) {
-                    ObservableList<TreeItem<File>> children = FXCollections.observableArrayList();
-                    //FileSystemView fsv = FileSystemView.getFileSystemView();
+                    ObservableList<TreeItem> children = FXCollections.observableArrayList();
                     for (File childFile : files) {
-
-                            //if (fsv.isDrive(childFile)) {
-                        // children.add(createNode(childFile, true));
-                        //} else {
                         children.add(createNode(childFile, false));
-                            //}
-
                     }
-
                     return children;
                 }
             }
             return FXCollections.emptyObservableList();
         }
 
-    }
-    /*
-     private CustomCheckBoxTreeItem createNode(final File f, boolean isDrive) throws IOException {
-     return new CustomCheckBoxTreeItem(f, isDrive) {
-     private boolean isLeaf;
-     private boolean isFirstTimeChildren;
-     private boolean isFirstTimeLeaf;
+        public void setDir(File dir) {
+            this.dir = dir;
+        }
 
-     @Override
-     public ObservableList<TreeItem<File>> getChildren() {
-     if (isFirstTimeChildren) {
-     isFirstTimeChildren = false;
-     try {
-     super.getChildren().setAll(buildChildren(this));
-     } catch (IOException ex) {
-     Logger.getLogger(DirTreeView.class.getName()).log(Level.SEVERE, null, ex);
-     }
-     }
-     return super.getChildren();
-     }
+        public File getDir() {
+            return dir;
+        }
 
-     @Override
-     public boolean isLeaf() {
-     if (isFirstTimeLeaf) {
-     isFirstTimeLeaf = false;
-     File f = (File) getValue();
-     isLeaf = f.isFile();
-     }
-     return super.isLeaf();
-     }
-
-     private ObservableList<TreeItem<File>> buildChildren(TreeItem<File> TreeItem) throws IOException {
-     File f = TreeItem.getValue();
-     if (f != null && f.isDirectory()) {
-     File[] files = f.listFiles();
-     if (files != null) {
-     ObservableList<TreeItem<File>> children = FXCollections.observableArrayList();
-
-     for (File childFile : files) {
-     children.add(createNode(childFile, false));
-     }
-
-     return children;
-     } else {
-     return FXCollections.emptyObservableList();
-     }
-     } else {
-     return FXCollections.emptyObservableList();
-     }
-
-                
-     }
-
-     };
-     }*/
+    } 
 }
