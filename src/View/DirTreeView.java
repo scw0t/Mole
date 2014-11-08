@@ -1,3 +1,6 @@
+package View;
+
+import View.MainGUI;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -191,9 +194,9 @@ public class DirTreeView extends Stage {
             ImageView imgView = new ImageView();
             Image icon = null;
             if (isDrive) {
-                icon = new Image(new FileInputStream("hdd3.png"));
+                icon = new Image(new FileInputStream("hp_hdd.png"));
             } else {
-                icon = new Image(new FileInputStream("folder3.png"));
+                icon = new Image(new FileInputStream("opened_folder.png"));
             }
             if (icon != null) {
                 imgView.setImage(icon);

@@ -1,3 +1,7 @@
+package View;
+
+import Entities.Issue;
+import Gears.Mole;
 import java.util.ArrayList;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;

@@ -1,3 +1,7 @@
+package View;
+
+import Entities.Issue;
+import Gears.Mole;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,37 +48,15 @@ public class CatDialog extends Stage {
         if (font == null) {
             font = new Font("Cambria", 16);
         }
-        
-        /*try {
-
-            
-        } catch (IOException e) {
-            font = new Font("Cambria", 16);
-            e.printStackTrace();
-        }*/
     }
 
     public void initGUI() {
         setOkButton(new Button("OK"));
         setCancelButton(new Button("Cancel"));
         catList = new CatList(null);
-        //catList.setPadding(new Insets(10));
 
         okButton.setPrefWidth(70);
         okButton.setStyle("-fx-focus-color: transparent;");
-        /*okButton.setOnAction(new EventHandler<ActionEvent>() {
-
-         @Override
-         public void handle(ActionEvent event) {
-         if (getCatList().getItems() != null) {
-         System.out.println(getCatList().getSelectionModel().getSelectedItem().getIssue().getCatNumber());
-
-         } else {
-         System.out.println("null");
-         }
-         close();
-         }
-         });*/
 
         cancelButton.setStyle("-fx-focus-color: transparent;");
         cancelButton.setPrefWidth(70);
@@ -150,7 +132,6 @@ public class CatDialog extends Stage {
         private final Issue issue;
 
         public CatBox(Issue issue) {
-            //super(10);
             this.issue = issue;
             init();
         }

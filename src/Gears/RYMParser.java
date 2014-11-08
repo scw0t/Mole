@@ -1,3 +1,10 @@
+package Gears;
+
+import Entities.Genre;
+import Entities.Artist;
+import Entities.Issue;
+import Entities.Person;
+import Entities.Record;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;

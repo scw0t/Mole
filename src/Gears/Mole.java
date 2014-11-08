@@ -1,7 +1,9 @@
+package Gears;
+
+import View.MainGUI;
 import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,13 +30,13 @@ import org.musicbrainz.model.searchresult.ArtistResultWs2;
 
 public class Mole extends Application {
 
-    static Stage primaryStage;
+    public static Stage primaryStage;
 
     @Override
     public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         
-        Scene scene = new Scene(new MainGUI(), 400, 600);
+        Scene scene = new Scene(new MainGUI(), 550, 700);
         scene.getStylesheets().add(getClass().getResource("toolbarStyle.css").toExternalForm());
 
         primaryStage.setTitle("hi!");

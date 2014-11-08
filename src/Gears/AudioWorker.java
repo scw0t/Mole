@@ -1,3 +1,9 @@
+package Gears;
+
+import View.CatDialog;
+import View.IssuesChooser;
+import Entities.Issue;
+import Entities.Record;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -173,7 +179,7 @@ public class AudioWorker {
 
                                 getCatDialog().setContent(parser.getRecord().getIssues());
 
-                                getCatDialog().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
+                                /*getCatDialog().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
                                     @Override
                                     public void handle(ActionEvent t) {
                                         try {
@@ -183,9 +189,6 @@ public class AudioWorker {
                                                 selectedIssue = getCatDialog().getCatList().getSelectionModel().getSelectedItem().getIssue();
                                                 editTracks();
                                                 //DirWorker.keySwitch.set(true);
-                                                /*if (getCatDialog().getOkButton().isPressed()) {
-                                                    
-                                                 }*/
                                                 getCatDialog().hide();
 
                                             } else {
@@ -197,7 +200,7 @@ public class AudioWorker {
                                             //DirWorker.latch.countDown();
                                         }
                                     }
-                                });
+                                });*/
 
                                 getCatDialog().getCancelButton().setOnAction(new EventHandler<ActionEvent>() {
                                     @Override

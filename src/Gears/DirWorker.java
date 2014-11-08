@@ -1,3 +1,6 @@
+package Gears;
+
+import View.CatDialog;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;

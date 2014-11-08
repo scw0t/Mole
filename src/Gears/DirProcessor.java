@@ -1,4 +1,7 @@
+package Gears;
 
+
+import View.MainGUI;
 import java.io.File;
 
 public class DirProcessor {

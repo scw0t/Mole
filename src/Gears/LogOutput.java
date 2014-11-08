@@ -1,3 +1,5 @@
+package Gears;
+
 public class LogOutput {
     
     private String initDir;
