@@ -1,5 +1,7 @@
 package View;
 
+import Gears.DirProcessor;
+import OutEntities.IncomingDirectory;
 import View.MainGUI;
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,16 +54,19 @@ public class DirTreeView extends Stage {
             @Override
             public void handle(ActionEvent event) {
                 //Получаем список выбранных папок
-                if (!MainGUI.dirList.isEmpty()) {
-                    MainGUI.dirList.clear();
+                if (!MainGUI.initialDirectoryList.isEmpty()) {
+                    MainGUI.initialDirectoryList.clear();
                 }
                 
                 final Iterator<CustomCheckBoxTreeItem> iterator = cctv.getCheckModel().getCheckedItems().iterator();
                 
                 while (iterator.hasNext()) {
                     CustomCheckBoxTreeItem next = iterator.next();
-                    MainGUI.dirList.add((File) next.getValue());
+                    MainGUI.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
                 }
+                
+                DirProcessor dp = new DirProcessor();
+                dp.init();
                 
                 DirTreeView.this.close();
             }

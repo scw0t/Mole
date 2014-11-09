@@ -2,6 +2,7 @@ package View;
 
 import Gears.LogOutput;
 import Gears.DirProcessor;
+import OutEntities.IncomingDirectory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -9,6 +10,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -34,7 +37,7 @@ public class MainGUI extends BorderPane {
 
     private final String initDirPath = "G:\\test";
     private TextField pathTextArea;
-    public static ArrayList<File> dirList;
+    public static ObservableList<IncomingDirectory> initialDirectoryList;
     TextArea logTextArea;
 
     public MainGUI() throws FileNotFoundException {
@@ -48,7 +51,7 @@ public class MainGUI extends BorderPane {
         logTextArea = new TextArea();
         logTextArea.setMaxHeight(Double.MAX_VALUE);
 
-        dirList = new ArrayList<>();
+        initialDirectoryList = FXCollections.observableArrayList();
 
         initElements();
     }
@@ -61,6 +64,7 @@ public class MainGUI extends BorderPane {
             public void handle(ActionEvent t) {
                 DirTreeView treeView = new DirTreeView();
                 try {
+                    initialDirectoryList.clear();
                     treeView.drawGUI();
                 } catch (IOException ex) {
                     Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
@@ -121,11 +125,10 @@ public class MainGUI extends BorderPane {
         //setBottom(textAreaVbox);
     }
 
-
     class CustomTableView extends TableView {
 
         public CustomTableView() {
-            
+
         }
 
     }
@@ -134,21 +137,9 @@ public class MainGUI extends BorderPane {
 
         @Override
         protected Object call() throws Exception {
-            File initDir = new File(pathTextArea.getText());
-            try {
-                if (initDir.exists()) {
-                    /*DirWorker dirWorker = new DirWorker(initDir);
-                     dirWorker.setLogOutput(logOutput);
-                     dirWorker.searchDirs();*/
+            /*DirProcessor dp = new DirProcessor();
+            dp.init();*/
 
-                    DirProcessor dp = new DirProcessor(initDir);
-                    dp.init();
-                } else {
-                    System.out.println(initDir.getAbsolutePath() + " does not exists");
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
             return null;
         }
     }
