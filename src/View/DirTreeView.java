@@ -2,7 +2,6 @@ package View;
 
 import Gears.DirProcessor;
 import OutEntities.IncomingDirectory;
-import View.MainGUI;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

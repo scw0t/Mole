@@ -1,13 +1,10 @@
 package View;
 
 import Gears.LogOutput;
-import Gears.DirProcessor;
 import OutEntities.IncomingDirectory;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.FXCollections;

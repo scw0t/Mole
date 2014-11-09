@@ -1,7 +1,6 @@
 package OutEntities;
 
 import Gears.DirProcessor;
-import static Gears.DirProcessor.hasAudio;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
