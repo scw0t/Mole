@@ -1,7 +1,7 @@
 package Gears;
 
 import OutEntities.IncomingDirectory;
-import OutEntities.SmartDirectory;
+import OutEntities.Cluster;
 import static View.MainGUI.initialDirectoryList;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -44,7 +44,7 @@ public class DirProcessor {
         }
         
         for (IncomingDirectory dir : parsedDirList) {
-            SmartDirectory sd = new SmartDirectory(dir.getValue());
+            Cluster sd = new Cluster(dir.getValue());
             sd.lookUp();
         }
         

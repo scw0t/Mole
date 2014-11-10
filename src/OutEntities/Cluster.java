@@ -21,10 +21,10 @@ import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
-public class SmartDirectory {
+public class Cluster {
     
     //private SmartDirectory parent; //родительская директория
-    private ObservableList<SmartDirectory> childList; //список потомков
+    private ObservableList<Cluster> childList; //список потомков
     
     private final File dir;
     private SimpleBooleanProperty parent;
@@ -37,7 +37,7 @@ public class SmartDirectory {
     private final SimpleBooleanProperty VaAttribute; //признак сборника
 
     //принимает директорию из parsedDirList
-    public SmartDirectory(File dir) {
+    public Cluster(File dir) {
         this.dir = dir;
         directoryName = new SimpleStringProperty(this, "directoryName");
         audioAttribute = new SimpleBooleanProperty(this, "audioAttribute");
@@ -65,14 +65,14 @@ public class SmartDirectory {
         System.out.println(parentDir.getValue().getName());
         for (File child : childLinkedList) {
             try {
-                SmartDirectory ocd = new SmartDirectory(child);
+                Cluster ocd = new Cluster(child);
                 ocd.setAudioAttribute(DirProcessor.hasAudio(child));
                 ocd.setImageAttribute(DirProcessor.hasImages(child));
                 ocd.setMultiCDAttribute(DirProcessor.hasMultiCD(child));
                 childList.add(ocd);
                 System.out.println("└-" + ocd.getDirectoryName());
             } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                Logger.getLogger(SmartDirectory.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(Cluster.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
