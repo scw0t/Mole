@@ -49,54 +49,44 @@ public class DirTreeView extends Stage {
         //Кнопка Ok
         Button okButton = new Button("Ok");
         okButton.setMinWidth(60);
-        okButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                //Получаем список выбранных папок
-                if (!MainGUI.initialDirectoryList.isEmpty()) {
-                    MainGUI.initialDirectoryList.clear();
-                }
-                
-                final Iterator<CustomCheckBoxTreeItem> iterator = cctv.getCheckModel().getCheckedItems().iterator();
-                
-                while (iterator.hasNext()) {
-                    CustomCheckBoxTreeItem next = iterator.next();
-                    MainGUI.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
-                }
-                
-                DirProcessor dp = new DirProcessor();
-                dp.init();
-                
-                DirTreeView.this.close();
+        okButton.setOnAction((ActionEvent event) -> {
+            //Получаем список выбранных папок
+            if (!MainGUI.initialDirectoryList.isEmpty()) {
+                MainGUI.initialDirectoryList.clear();
             }
+            
+            final Iterator<CustomCheckBoxTreeItem> iterator = cctv.getCheckModel().getCheckedItems().iterator();
+            
+            while (iterator.hasNext()) {
+                CustomCheckBoxTreeItem next = iterator.next();
+                MainGUI.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
+            }
+            
+            DirProcessor dirProcessor = new DirProcessor();
+            dirProcessor.go();
+            
+            DirTreeView.this.close();
         });
 
         //Кнопка Cancel
         Button cancelButton = new Button("Cancel");
         cancelButton.setMinWidth(60);
-        cancelButton.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
-                DirTreeView.this.close();
-            }
+        cancelButton.setOnAction((ActionEvent event) -> {
+            DirTreeView.this.close();
         });
         
         HBox buttonBox = new HBox();
-        //buttonBox.setStyle("-fx-border-color: black;");
         buttonBox.setPadding(new Insets(5));
         buttonBox.setAlignment(Pos.CENTER);
         buttonBox.setSpacing(20);
         buttonBox.getChildren().addAll(okButton, cancelButton);
 
         VBox vBox = new VBox();
-        //vBox.setStyle("-fx-border-color: red;");
         vBox.setMaxHeight(Double.MAX_VALUE);
         vBox.getChildren().addAll(cctv, buttonBox);
         
         BorderPane bp = new BorderPane(vBox);
         bp.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        //bp.setPrefSize(BorderPane.USE_COMPUTED_SIZE, BorderPane.USE_COMPUTED_SIZE);
-        //bp.setScaleShape(true);
         
         Scene scene = new Scene(bp, 500, 700);
         setScene(scene);

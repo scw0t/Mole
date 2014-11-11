@@ -1,55 +1,52 @@
 package View;
 
-import javafx.scene.control.TableCell;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.util.Callback;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
-public class ClusterTableView<Cluster> extends TableView {
+public class ClusterTableView<ClusterModel> extends TableView<ClusterModel> {
 
-        public ClusterTableView() {
-            
-            TableColumn<Cluster, String> clusterNameCol = new TableColumn<>("Cluster");
-            //clusterNameCol.setCellValueFactory(new PropertyValueFactory<>("id")); 
-            //clusterNameCol.setCellValueFactory(new ClusterValueFactory(initDirPath));
-            clusterNameCol.setCellFactory(new ClusterCellFactory());
-            this.getColumns().add(clusterNameCol);
-        }
-        
-        class ClusterValueFactory extends PropertyValueFactory<Cluster, String>{
+    private final TableColumn<ClusterModel, Boolean> checkCol;
+    private final TableColumn<ClusterModel, String> nameCol;
+    private TextArea textArea;
 
-            public ClusterValueFactory(String property) {
-                super(property);
-            }
-            
-        }
+    public ClusterTableView() throws FileNotFoundException {
+        checkCol = new TableColumn<ClusterModel, Boolean>("");
+        nameCol = new TableColumn<ClusterModel, String>("Name");
+        checkCol.setGraphic(new ImageView(new Image(new FileInputStream("eye.png"))));
+        checkCol.setSortable(false);
 
-        class ClusterCellFactory implements Callback<TableColumn<Cluster, String>, TableCell<Cluster, String>> {
+        getColumns().addAll(checkCol, nameCol);
 
-            @Override
-            public TableCell<Cluster, String> call(TableColumn<Cluster, String> param) {
-                return new ClusterCell();
-            }
+        checkCol.setCellValueFactory(new PropertyValueFactory<ClusterModel, Boolean>("checked"));
+        nameCol.setCellValueFactory(new PropertyValueFactory<ClusterModel, String>("name"));
 
-            class ClusterCell extends TableCell<Cluster, String> {
-                
-                public ClusterCell() {
-                }
-
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty); 
-                    if (item == null || empty) {
-                        setText("12");
-                    } else{
-                        setText("145");
-                    }
-                    
-                }
-
-            }
-
-        }
+        checkCol.setCellFactory(CheckBoxTableCell.forTableColumn(checkCol));
+        checkCol.setEditable(true);
+        setEditable(true);
 
     }
+
+    public TableColumn<ClusterModel, Boolean> getCheckCol() {
+        return checkCol;
+    }
+
+    public TableColumn<ClusterModel, String> getNameCol() {
+        return nameCol;
+    }
+
+    public TextArea getTextArea() {
+        return textArea;
+    }
+
+    public void setTextArea(TextArea textArea) {
+        this.textArea = textArea;
+    }
+
+}
