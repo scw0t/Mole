@@ -1,7 +1,7 @@
 package Gears;
 
 import OutEntities.IncomingDirectory;
-import OutEntities.Cluster;
+import OutEntities.VirtualCluster;
 import static View.MainGUI.initialDirectoryList;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -44,7 +44,7 @@ public class DirProcessor {
         }
         
         for (IncomingDirectory dir : parsedDirList) {
-            Cluster sd = new Cluster(dir.getValue());
+            VirtualCluster sd = new VirtualCluster(dir.getValue());
             sd.lookUp();
         }
         

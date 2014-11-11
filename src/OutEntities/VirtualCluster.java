@@ -21,10 +21,10 @@ import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
-public class Cluster {
+public class VirtualCluster {
     
     //private SmartDirectory parent; //родительская директория
-    private ObservableList<Cluster> childList; //список потомков
+    private ObservableList<VirtualCluster> childList; //список потомков
     
     private final File dir;
     private SimpleBooleanProperty parent;
@@ -37,7 +37,7 @@ public class Cluster {
     private final SimpleBooleanProperty VaAttribute; //признак сборника
 
     //принимает директорию из parsedDirList
-    public Cluster(File dir) {
+    public VirtualCluster(File dir) {
         this.dir = dir;
         directoryName = new SimpleStringProperty(this, "directoryName");
         audioAttribute = new SimpleBooleanProperty(this, "audioAttribute");
@@ -65,14 +65,14 @@ public class Cluster {
         System.out.println(parentDir.getValue().getName());
         for (File child : childLinkedList) {
             try {
-                Cluster ocd = new Cluster(child);
+                VirtualCluster ocd = new VirtualCluster(child);
                 ocd.setAudioAttribute(DirProcessor.hasAudio(child));
                 ocd.setImageAttribute(DirProcessor.hasImages(child));
                 ocd.setMultiCDAttribute(DirProcessor.hasMultiCD(child));
                 childList.add(ocd);
                 System.out.println("└-" + ocd.getDirectoryName());
             } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                Logger.getLogger(Cluster.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(VirtualCluster.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }

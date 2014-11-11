@@ -90,9 +90,7 @@ public class MainGUI extends BorderPane {
         buttonBar.getStyleClass().setAll("segmented-button-bar");
         buttonBar.getChildren().addAll(openButton, runButton, pathTextArea);
 
-        ToolBar toolbar = new ToolBar();
-        setTop(toolbar);
-        toolbar.getItems().addAll(spacer, buttonBar, pathTextArea, settingsButton);
+        
 
         //wrapper for =logTextArea
         VBox textAreaVbox = new VBox();
@@ -102,7 +100,7 @@ public class MainGUI extends BorderPane {
         VBox.setVgrow(textAreaVbox, Priority.ALWAYS);
         VBox.setVgrow(logTextArea, Priority.ALWAYS);
 
-        CustomTableView tableView = new CustomTableView();
+        ClusterTableView tableView = new ClusterTableView();
 
         //wrapper for =tableView
         VBox tableViewVbox = new VBox();
@@ -117,17 +115,12 @@ public class MainGUI extends BorderPane {
         pane.setDetailNode(textAreaVbox);
         pane.setDetailSide(Side.BOTTOM);
         pane.setShowDetailNode(true);
-
         setCenter(pane);
+        
+        ToolBar toolbar = new ToolBar();
+        toolbar.getItems().addAll(spacer, buttonBar, pathTextArea, settingsButton);
+        setTop(toolbar);
         //setBottom(textAreaVbox);
-    }
-
-    class CustomTableView extends TableView {
-
-        public CustomTableView() {
-
-        }
-
     }
 
     class MainTask extends Task {

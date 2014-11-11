@@ -11,7 +11,7 @@ public class ClusterTableView<Cluster> extends TableView {
         public ClusterTableView() {
             
             TableColumn<Cluster, String> clusterNameCol = new TableColumn<>("Cluster");
-            clusterNameCol.setCellValueFactory(new PropertyValueFactory<>("id")); 
+            //clusterNameCol.setCellValueFactory(new PropertyValueFactory<>("id")); 
             //clusterNameCol.setCellValueFactory(new ClusterValueFactory(initDirPath));
             clusterNameCol.setCellFactory(new ClusterCellFactory());
             this.getColumns().add(clusterNameCol);
