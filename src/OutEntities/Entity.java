@@ -3,6 +3,7 @@ package OutEntities;
 import Gears.DirProcessor;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -11,6 +12,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableArray;
 import javafx.collections.ObservableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
@@ -21,7 +23,7 @@ import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
-public class Entity {
+public final class Entity {
     
     //private SmartDirectory parent; //родительская директория
     private ObservableList<Entity> childList; //список потомков
@@ -30,6 +32,11 @@ public class Entity {
     private SimpleBooleanProperty parent;
     private ObjectProperty<File> parentDir; //родительская директория
     private ObjectProperty<File> currentDir; //текущая директория
+    
+    private ObservableList<File> listOfAudioFiles;
+    private ObservableList<File> listOfImageFiles;
+    private ObservableList<File> listOfOtherFiles;
+    
     private final SimpleStringProperty directoryName; //Имя директории
     private final SimpleBooleanProperty audioAttribute; //Наличие аудио
     private final SimpleBooleanProperty multiCDAttribute; //наличие нескольких дисков
@@ -39,6 +46,7 @@ public class Entity {
     //принимает директорию из parsedDirList
     public Entity(File dir) {
         this.dir = dir;
+        currentDir = new SimpleObjectProperty(this, "currentDir");
         directoryName = new SimpleStringProperty(this, "directoryName");
         audioAttribute = new SimpleBooleanProperty(this, "audioAttribute");
         multiCDAttribute = new SimpleBooleanProperty(this, "multiCDAttribute");
@@ -46,34 +54,56 @@ public class Entity {
         VaAttribute = new SimpleBooleanProperty(this, "VaAttribute");
         
         directoryName.setValue(dir.getName());
-        //this.parentDir = new SimpleObjectProperty<>(this, "thisDir");
         
-        //this.parentDir.setValue(dir);
+        try {
+            setAudioAttribute(DirProcessor.hasAudio(dir));
+            setImageAttribute(DirProcessor.hasImages(dir));
+            setMultiCDAttribute(DirProcessor.hasMultiCD(dir));
+        } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+            Logger.getLogger(Entity.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
     }
     
     // сканирование директории
     // добавление потомков
-    public void lookUp(){
+    public void lookForChildEntities(){
         parentDir = new SimpleObjectProperty<>(this, "parentDir");
-        parentDir.setValue(dir); 
+        parentDir.setValue(dir);
+        
+        System.out.println(parentDir.getValue().getName());
+        lookForInnerFiles(dir);
+        
         childList = FXCollections.observableArrayList();
         LinkedList<File> childLinkedList = (LinkedList) FileUtils.listFilesAndDirs(parentDir.getValue(),
                 new NotFileFilter(TrueFileFilter.INSTANCE),
                 DirectoryFileFilter.DIRECTORY);
         childLinkedList.removeFirst();
-        System.out.println(parentDir.getValue().getName());
+        
         for (File child : childLinkedList) {
             try {
                 Entity ocd = new Entity(child);
+                ocd.setCurrentDir(child);
+                ocd.setParentDir(parentDir);
                 ocd.setAudioAttribute(DirProcessor.hasAudio(child));
                 ocd.setImageAttribute(DirProcessor.hasImages(child));
                 ocd.setMultiCDAttribute(DirProcessor.hasMultiCD(child));
                 childList.add(ocd);
                 System.out.println("└-" + ocd.getDirectoryName());
+                ocd.lookForInnerFiles(ocd.getCurrentDir().getValue());
             } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
                 Logger.getLogger(Entity.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
+    }
+    
+    public void lookForInnerFiles(File dir){
+        if (dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            for (File f : files) {
+                System.out.println("---" + f.getAbsolutePath());
+            }
+            System.out.println("------------------");
         }
     }
 
@@ -127,6 +157,42 @@ public class Entity {
 
     public void setVaAttribute(boolean isVa) {
         this.VaAttribute.setValue(isVa);
+    }
+
+    public ObservableList<Entity> getChildList() {
+        return childList;
+    }
+
+    public ObservableList<File> getListOfAudioFiles() {
+        return listOfAudioFiles;
+    }
+
+    public void setListOfAudioFiles(ObservableList<File> listOfAudioFiles) {
+        this.listOfAudioFiles = listOfAudioFiles;
+    }
+
+    public ObservableList<File> getListOfImageFiles() {
+        return listOfImageFiles;
+    }
+
+    public void setListOfImageFiles(ObservableList<File> listOfImageFiles) {
+        this.listOfImageFiles = listOfImageFiles;
+    }
+
+    public ObservableList<File> getListOfOtherFiles() {
+        return listOfOtherFiles;
+    }
+
+    public void setListOfOtherFiles(ObservableList<File> listOfOtherFiles) {
+        this.listOfOtherFiles = listOfOtherFiles;
+    }
+
+    public ObjectProperty<File> getCurrentDir() {
+        return currentDir;
+    }
+
+    public void setCurrentDir(File dir) {
+        this.currentDir.set(dir);
     }
     
     

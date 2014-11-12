@@ -8,12 +8,19 @@ import static View.MainGUI.initialDirectoryList;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NotFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -23,6 +30,7 @@ import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
 public class DirProcessor {
+
     private ObservableList<IncomingDirectory> parsedDirList;
     public static ObservableList<Entity> entityList;
 
@@ -32,6 +40,8 @@ public class DirProcessor {
     }
 
     public void go() {
+        //filterNonAudioDirs(initialDirectoryList.get(0).getValue());
+
         for (IncomingDirectory dirProperty : initialDirectoryList) {
             File dir = dirProperty.getValue();
             if (dir != null && dir.exists()) {
@@ -40,13 +50,14 @@ public class DirProcessor {
         }
 
         for (IncomingDirectory dir : parsedDirList) {
-            Entity entity = new Entity(dir.getValue());
-            entity.lookUp();
-            entityList.add(entity);
+            filterNonAudioDirs(dir.getValue());
+
+            /*Entity entity = new Entity(dir.getValue());
+             entity.lookForChildEntities();
+             entityList.add(entity);*/
         }
 
-        fillTable();
-        
+        //fillTable();
         /*System.out.println(parsedDirList.size());
 
          for (IncomingDirectory dir1 : parsedDirList) {
@@ -64,8 +75,8 @@ public class DirProcessor {
          }
          }*/
     }
-    
-    private void fillTable(){
+
+    private void fillTable() {
         ObservableList<ClusterModel> clusters = FXCollections.observableArrayList();
         if (entityList != null && !entityList.isEmpty()) {
             for (Entity entity : entityList) {
@@ -77,8 +88,84 @@ public class DirProcessor {
         }
     }
 
+    private void filterNonAudioDirs(File parent) {
+        String mainPathPart = parent.getAbsolutePath();
+        System.out.println("+++" + mainPathPart);
+        walk(parent);
+        File[] list = parent.listFiles();
+
+        for (File dir : list) {
+            if (dir.isDirectory()) {
+                if (!dir.getAbsolutePath().contains(mainPathPart)) {
+                    mainPathPart = dir.getAbsolutePath();
+                    System.out.println("+++" + mainPathPart);
+                    walk(dir);
+                }
+            }
+
+            //filterNonAudioDirs(dir.getAbsolutePath());
+            //System.out.println(dir.getAbsolutePath());
+        }
+        System.out.println("---------------------");
+    }
+
+    private void walk(File parent) {
+        try {
+            Path startPath = parent.toPath();
+            Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir,
+                        BasicFileAttributes attrs) {
+                    FileVisitResult res = FileVisitResult.CONTINUE;
+                    File[] list = dir.toFile().listFiles();
+                    System.out.println("Curr dir: " + dir.toString());
+                    for (File f : list) {
+                        if (FilenameUtils.getExtension(f.getName()).toLowerCase().equals("mp3")) {
+                            System.out.println(f.getAbsolutePath());
+                            res = FileVisitResult.CONTINUE;
+                        } else {
+                            res = FileVisitResult.CONTINUE;
+                        }
+                    }
+                    //System.out.println("Dir: " + dir.toString());
+                    return res;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    //System.out.println("File: " + file.toString());
+                    /*FileVisitResult res;
+                     if (!FilenameUtils.getExtension(file.getFileName().toString()).equals("mp3")) {
+                     System.out.println(file.toString());
+                     res = FileVisitResult.SKIP_SIBLINGS;
+                     } else {
+                     res = FileVisitResult.CONTINUE;
+                     }*/
+
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException e) {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void removeExcessDirs(File dir) {
         try {
+            // фильтр директории, без аудиофайлов
+            /*for (int i = 0; i < parsedDirList.size(); i++) {
+             if (!hasAudio(dir)) {
+                    
+             } else {
+             break;
+             }
+             }*/
+
             if ((!hasAudio(dir) && !hasMultiCD(dir)) && !hasInnerFolder(dir)) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().contains(dir.getAbsolutePath())) {
@@ -150,11 +237,10 @@ public class DirProcessor {
     }
 
     /*public ObservableList<Entity> getEntityList() {
-        return entityList;
-    }
+     return entityList;
+     }
 
-    public void setEntityList(ObservableList<Entity> entityList) {
-        this.entityList = entityList;
-    }*/
-
+     public void setEntityList(ObservableList<Entity> entityList) {
+     this.entityList = entityList;
+     }*/
 }

@@ -15,7 +15,6 @@ public class ClusterModel {
         this.entity = entity;
         this.checked = new SimpleBooleanProperty(true);
         this.name = new SimpleStringProperty(entity.getDirectoryName());
-        
     }
 
     public String getName(){

@@ -2,6 +2,7 @@ package View;
 
 import Gears.LogOutput;
 import OutEntities.ClusterModel;
+import OutEntities.Entity;
 import OutEntities.IncomingDirectory;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +15,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.Button;
@@ -22,6 +24,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToolBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -50,6 +54,7 @@ public class MainGUI extends BorderPane {
 
         logTextArea = new TextArea();
         logTextArea.setMaxHeight(Double.MAX_VALUE);
+        logTextArea.setStyle("-fx-focus-color: transparent;");
 
         setId("background");
         initElements();
@@ -89,6 +94,7 @@ public class MainGUI extends BorderPane {
         //wrapper for =logTextArea
         VBox textAreaVbox = new VBox();
         textAreaVbox.setPadding(new Insets(10));
+        textAreaVbox.setMinHeight(500);
         textAreaVbox.setMaxHeight(Double.MAX_VALUE);
         textAreaVbox.getChildren().add(logTextArea);
         VBox.setVgrow(textAreaVbox, Priority.ALWAYS);
@@ -106,7 +112,7 @@ public class MainGUI extends BorderPane {
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         MasterDetailPane pane = new MasterDetailPane();
-        //pane.setDividerPosition(200);
+        pane.setDividerPosition(0.6);
         pane.setMasterNode(tableViewVbox);
         pane.setDetailNode(textAreaVbox);
         pane.setDetailSide(Side.BOTTOM);
@@ -120,7 +126,44 @@ public class MainGUI extends BorderPane {
         tableView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<ClusterModel>() {
             public void changed(ObservableValue<? extends ClusterModel> observable,
                     ClusterModel oldValue, ClusterModel newValue) {
-                logTextArea.setText(tableView.getSelectionModel().getSelectedItem().getEntity().getDirectoryName());
+                try {
+                    StringBuilder sb = new StringBuilder();
+                    Entity entity = tableView.getSelectionModel().getSelectedItem().getEntity();
+                    sb.append(entity.getDirectoryName()).append("\n");
+                    if (entity.getMultiCDAttribute()) {
+                        int count = 1;
+                        for (Entity child : entity.getChildList()) {
+                            if (child.getAudioAttribute()) {
+                                sb.append("└#").append(count++).append(": ");
+                                sb.append(child.getDirectoryName()).append("\n");
+                            }
+                        }
+                    }
+
+                    logTextArea.setText(sb.toString());
+
+                } catch (NullPointerException e) {
+                    //System.out.println("something happend");
+                }
+
+            }
+        });
+
+        tableView.setOnKeyPressed(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent k) {
+                try {
+                    if (k.getCode().equals(KeyCode.SPACE) || k.getCode().equals(KeyCode.ENTER)) {
+                        if (tableView.getSelectionModel().getSelectedItem().isChecked()) {
+                            tableView.getSelectionModel().getSelectedItem().setCheck(false);
+                        } else {
+                            tableView.getSelectionModel().getSelectedItem().setCheck(true);
+                        }
+                    }
+                } catch (NullPointerException e) {
+                    System.out.println("something happend");
+                }
+
             }
         });
     }

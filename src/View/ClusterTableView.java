@@ -30,6 +30,7 @@ public class ClusterTableView<ClusterModel> extends TableView<ClusterModel> {
         checkCol.setCellFactory(CheckBoxTableCell.forTableColumn(checkCol));
         checkCol.setEditable(true);
         setEditable(true);
+        setStyle("-fx-focus-color: transparent;");
 
     }
 
