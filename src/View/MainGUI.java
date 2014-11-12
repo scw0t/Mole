@@ -130,14 +130,18 @@ public class MainGUI extends BorderPane {
                     StringBuilder sb = new StringBuilder();
                     Entity entity = tableView.getSelectionModel().getSelectedItem().getEntity();
                     sb.append(entity.getDirectoryName()).append("\n");
-                    if (entity.getMultiCDAttribute()) {
-                        int count = 1;
-                        for (Entity child : entity.getChildList()) {
-                            if (child.getAudioAttribute()) {
-                                sb.append("└#").append(count++).append(": ");
-                                sb.append(child.getDirectoryName()).append("\n");
-                            }
-                        }
+                    /*if (entity.hasMultiCDAttribute()) {
+                     int count = 1;
+                     for (Entity child : entity.getChildList()) {
+                     if (child.hasAudioAttribute()) {
+                     sb.append("└#").append(count++).append(": ");
+                     sb.append(child.getDirectoryName()).append("\n");
+                     }
+                     }
+                     }*/
+
+                    for (Entity child : entity.getChildList()) {
+                        //sb.append(child.).append("\n");
                     }
 
                     logTextArea.setText(sb.toString());

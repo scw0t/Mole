@@ -3,7 +3,6 @@ package OutEntities;
 import Gears.DirProcessor;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,9 +11,10 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableArray;
 import javafx.collections.ObservableList;
+import javax.activation.MimetypesFileTypeMap;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NotFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -24,19 +24,19 @@ import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
 public final class Entity {
-    
+
     //private SmartDirectory parent; //родительская директория
     private ObservableList<Entity> childList; //список потомков
-    
+
     private final File dir;
     private SimpleBooleanProperty parent;
     private ObjectProperty<File> parentDir; //родительская директория
     private ObjectProperty<File> currentDir; //текущая директория
-    
+
     private ObservableList<File> listOfAudioFiles;
     private ObservableList<File> listOfImageFiles;
     private ObservableList<File> listOfOtherFiles;
-    
+
     private final SimpleStringProperty directoryName; //Имя директории
     private final SimpleBooleanProperty audioAttribute; //Наличие аудио
     private final SimpleBooleanProperty multiCDAttribute; //наличие нескольких дисков
@@ -52,9 +52,13 @@ public final class Entity {
         multiCDAttribute = new SimpleBooleanProperty(this, "multiCDAttribute");
         imageAttribute = new SimpleBooleanProperty(this, "imageAttribute");
         VaAttribute = new SimpleBooleanProperty(this, "VaAttribute");
-        
+
+        listOfAudioFiles = FXCollections.observableArrayList();
+        listOfImageFiles = FXCollections.observableArrayList();
+        listOfOtherFiles = FXCollections.observableArrayList();
+
         directoryName.setValue(dir.getName());
-        
+
         try {
             setAudioAttribute(DirProcessor.hasAudio(dir));
             setImageAttribute(DirProcessor.hasImages(dir));
@@ -62,24 +66,23 @@ public final class Entity {
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
             Logger.getLogger(Entity.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
-    
+
     // сканирование директории
     // добавление потомков
-    public void lookForChildEntities(){
+    public void lookForChildEntities() {
         parentDir = new SimpleObjectProperty<>(this, "parentDir");
         parentDir.setValue(dir);
-        
-        System.out.println(parentDir.getValue().getName());
-        lookForInnerFiles(dir);
-        
+
+        //System.out.println(parentDir.getValue().getName());
+        fillListsOfInnerFiles(dir);
         childList = FXCollections.observableArrayList();
         LinkedList<File> childLinkedList = (LinkedList) FileUtils.listFilesAndDirs(parentDir.getValue(),
                 new NotFileFilter(TrueFileFilter.INSTANCE),
                 DirectoryFileFilter.DIRECTORY);
         childLinkedList.removeFirst();
-        
+
         for (File child : childLinkedList) {
             try {
                 Entity ocd = new Entity(child);
@@ -89,41 +92,121 @@ public final class Entity {
                 ocd.setImageAttribute(DirProcessor.hasImages(child));
                 ocd.setMultiCDAttribute(DirProcessor.hasMultiCD(child));
                 childList.add(ocd);
-                System.out.println("└-" + ocd.getDirectoryName());
-                ocd.lookForInnerFiles(ocd.getCurrentDir().getValue());
+                //System.out.print("└-");
+                ocd.fillListsOfInnerFiles(ocd.getCurrentDir().getValue());
             } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
                 Logger.getLogger(Entity.class.getName()).log(Level.SEVERE, null, ex);
+            } 
+        }
+        
+        removeUselessChilds();
+        
+        System.out.println(getDirectoryName());
+        testLists();
+        
+        for (Entity child : childList) {
+            child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
+            System.out.print("└-");
+            System.out.println(child.getCurrentDir().getValue().getName());
+            child.testLists();
+        }
+
+        
+        
+    }
+
+    public boolean removeUselessChilds() {
+        if (hasAudioAttribute()) {
+            //System.out.println("Parent: + | " + getParentDir().getValue().getAbsolutePath());
+        } else {
+            //System.out.println("Parent: - | " + getParentDir().getValue().getAbsolutePath());
+        }
+        for (int i = 0; i < childList.size(); i++) {
+            if (childList.get(i).hasAudioAttribute()) {
+                //System.out.println("Child: A+ | " + childList.get(i).getCurrentDir().getValue().getAbsolutePath());
+            } else if (childList.get(i).hasImageAttribute()) {
+                //System.out.println("Child: I+ | " + childList.get(i).getCurrentDir().getValue().getAbsolutePath());
+            } else {
+                childList.remove(i);
+                //System.out.println("Child: - | " + child.getCurrentDir().getValue().getAbsolutePath());
             }
         }
+
+        //System.out.println("-----------------");
+        return true;
     }
-    
-    public void lookForInnerFiles(File dir){
+
+    public void fillListsOfInnerFiles(File dir) {
+        //System.out.println(dir.getName());
         if (dir.isDirectory()) {
             File[] files = dir.listFiles();
             for (File f : files) {
-                System.out.println("---" + f.getAbsolutePath());
+                if (f.isFile()) {
+                    if (isAudio(f)) {
+                        listOfAudioFiles.add(f);
+                    } else if (isImage(f)) {
+                        listOfImageFiles.add(f);
+                    } else {
+                        listOfOtherFiles.add(f);
+                    }
+                }
             }
-            System.out.println("------------------");
         }
+
+    }
+
+    private void testLists() {
+        if (!listOfAudioFiles.isEmpty()) {
+            System.out.println("--Audio:");
+            for (File file : listOfAudioFiles) {
+                System.out.println(file.getAbsolutePath());
+            }
+        }
+
+        if (!listOfImageFiles.isEmpty()) {
+            System.out.println("--Images:");
+            for (File file : listOfImageFiles) {
+                System.out.println(file.getAbsolutePath());
+            }
+        }
+
+        if (!listOfOtherFiles.isEmpty()) {
+            System.out.println("--Others:");
+            for (File file : listOfOtherFiles) {
+                System.out.println(file.getAbsolutePath());
+            }
+            
+        }
+        System.out.println("-----");
+    }
+
+    private boolean isAudio(File file) {
+        return FilenameUtils.getExtension(file.toString()).toLowerCase().equals("mp3");
+    }
+
+    private boolean isImage(File file) {
+        String mimetype = new MimetypesFileTypeMap().getContentType(file);
+        String type = mimetype.split("/")[0];
+        return type.equals("image");
     }
 
     public String getDirectoryName() {
         return directoryName.getValue();
     }
 
-    public boolean getAudioAttribute() {
+    public boolean hasAudioAttribute() {
         return audioAttribute.getValue();
     }
 
-    public boolean getMultiCDAttribute() {
+    public boolean hasMultiCDAttribute() {
         return multiCDAttribute.getValue();
     }
 
-    public boolean getImageAttribute() {
+    public boolean hasImageAttribute() {
         return imageAttribute.getValue();
     }
 
-    public boolean getVaAttribute() {
+    public boolean hasVaAttribute() {
         return VaAttribute.getValue();
     }
 
@@ -194,6 +277,5 @@ public final class Entity {
     public void setCurrentDir(File dir) {
         this.currentDir.set(dir);
     }
-    
-    
+
 }
