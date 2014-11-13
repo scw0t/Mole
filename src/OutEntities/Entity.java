@@ -3,6 +3,7 @@ package OutEntities;
 import Gears.DirProcessor;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,29 +13,31 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javax.activation.MimetypesFileTypeMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.NotFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
+import org.jaudiotagger.audio.mp3.MP3File;
 import org.jaudiotagger.tag.TagException;
 
 public final class Entity {
 
-    //private SmartDirectory parent; //родительская директория
+    private final File dir;
+
     private ObservableList<Entity> childList; //список потомков
 
-    private final File dir;
-    private SimpleBooleanProperty parent;
     private ObjectProperty<File> parentDir; //родительская директория
     private ObjectProperty<File> currentDir; //текущая директория
 
-    private ObservableList<File> listOfAudioFiles;
-    private ObservableList<File> listOfImageFiles;
+    private ObservableList<AudioEntity> listOfAudioFiles; //список аудиофайлов
+    private ObservableList<File> listOfImageFiles; //список изображений
     private ObservableList<File> listOfOtherFiles;
 
     private final SimpleStringProperty directoryName; //Имя директории
@@ -43,9 +46,17 @@ public final class Entity {
     private final SimpleBooleanProperty imageAttribute; //наличие картинок
     private final SimpleBooleanProperty VaAttribute; //признак сборника
 
+    private ObservableMap<String, String> tracklist; //key - trackNumber, value - title
+    private ObservableList<String> albumTitle; //size()>1 - наличие нескольких альбомов в одном кластере
+    private ObservableList<String> genres; //жанры, встречающиеся в кластере
+    private ObservableList<String> artistTitle; //size()>1 - наличие нескольких исполнителей
+                                                //size()==2 - сплит
+                                                //size()>2 - сборник
+
     //принимает директорию из parsedDirList
     public Entity(File dir) {
         this.dir = dir;
+
         currentDir = new SimpleObjectProperty(this, "currentDir");
         directoryName = new SimpleStringProperty(this, "directoryName");
         audioAttribute = new SimpleBooleanProperty(this, "audioAttribute");
@@ -64,7 +75,7 @@ public final class Entity {
             setImageAttribute(DirProcessor.hasImages(dir));
             setMultiCDAttribute(DirProcessor.hasMultiCD(dir));
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-            Logger.getLogger(Entity.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Ошибка при добавлении атрибутов");
         }
 
     }
@@ -72,11 +83,28 @@ public final class Entity {
     // сканирование директории
     // добавление потомков
     public void lookForChildEntities() {
-        parentDir = new SimpleObjectProperty<>(this, "parentDir");
+        parentDir = new SimpleObjectProperty<>(this, "parentDir"); //инициализируем родителя при сканировании нового кластера
         parentDir.setValue(dir);
+        fillListsOfInnerFiles(dir); //сортируем файлы в родительской папке
 
-        //System.out.println(parentDir.getValue().getName());
-        fillListsOfInnerFiles(dir);
+        System.out.println(getDirectoryName());
+        testLists();
+
+        addChilds();
+
+        System.out.println("-----");
+    }
+    
+    public void collectAudioData(Entity entity){
+        if (entity.hasAudioAttribute()) {
+            for (AudioEntity ae : entity.getListOfAudioFiles()) {
+                //ae.
+            }
+        }
+    }
+
+
+    private void addChilds() {
         childList = FXCollections.observableArrayList();
         LinkedList<File> childLinkedList = (LinkedList) FileUtils.listFilesAndDirs(parentDir.getValue(),
                 new NotFileFilter(TrueFileFilter.INSTANCE),
@@ -84,35 +112,21 @@ public final class Entity {
         childLinkedList.removeFirst();
 
         for (File child : childLinkedList) {
-            try {
-                Entity ocd = new Entity(child);
-                ocd.setCurrentDir(child);
-                ocd.setParentDir(parentDir);
-                ocd.setAudioAttribute(DirProcessor.hasAudio(child));
-                ocd.setImageAttribute(DirProcessor.hasImages(child));
-                ocd.setMultiCDAttribute(DirProcessor.hasMultiCD(child));
-                childList.add(ocd);
-                //System.out.print("└-");
-                ocd.fillListsOfInnerFiles(ocd.getCurrentDir().getValue());
-            } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                Logger.getLogger(Entity.class.getName()).log(Level.SEVERE, null, ex);
-            } 
+            Entity ocd = new Entity(child);
+            ocd.setCurrentDir(child);
+            ocd.setParentDir(parentDir);
+            ocd.fillListsOfInnerFiles(ocd.getCurrentDir().getValue());
+            childList.add(ocd);
         }
-        
+
         removeUselessChilds();
-        
-        System.out.println(getDirectoryName());
-        testLists();
-        
+
         for (Entity child : childList) {
             child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
             System.out.print("└-");
             System.out.println(child.getCurrentDir().getValue().getName());
             child.testLists();
         }
-
-        
-        
     }
 
     public boolean removeUselessChilds() {
@@ -143,7 +157,7 @@ public final class Entity {
             for (File f : files) {
                 if (f.isFile()) {
                     if (isAudio(f)) {
-                        listOfAudioFiles.add(f);
+                        listOfAudioFiles.add(new AudioEntity(f));
                     } else if (isImage(f)) {
                         listOfImageFiles.add(f);
                     } else {
@@ -158,8 +172,8 @@ public final class Entity {
     private void testLists() {
         if (!listOfAudioFiles.isEmpty()) {
             System.out.println("--Audio:");
-            for (File file : listOfAudioFiles) {
-                System.out.println(file.getAbsolutePath());
+            for (AudioEntity file : listOfAudioFiles) {
+                System.out.println(file.getFile().getAbsolutePath());
             }
         }
 
@@ -175,9 +189,7 @@ public final class Entity {
             for (File file : listOfOtherFiles) {
                 System.out.println(file.getAbsolutePath());
             }
-            
         }
-        System.out.println("-----");
     }
 
     private boolean isAudio(File file) {
@@ -210,14 +222,6 @@ public final class Entity {
         return VaAttribute.getValue();
     }
 
-    public boolean isParent() {
-        return parent.getValue();
-    }
-
-    public void setParent(boolean parent) {
-        this.parent.setValue(parent);
-    }
-
     public ObjectProperty<File> getParentDir() {
         return parentDir;
     }
@@ -246,11 +250,11 @@ public final class Entity {
         return childList;
     }
 
-    public ObservableList<File> getListOfAudioFiles() {
+    public ObservableList<AudioEntity> getListOfAudioFiles() {
         return listOfAudioFiles;
     }
 
-    public void setListOfAudioFiles(ObservableList<File> listOfAudioFiles) {
+    public void setListOfAudioFiles(ObservableList<AudioEntity> listOfAudioFiles) {
         this.listOfAudioFiles = listOfAudioFiles;
     }
 

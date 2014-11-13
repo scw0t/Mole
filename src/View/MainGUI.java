@@ -1,6 +1,7 @@
 package View;
 
 import Gears.LogOutput;
+import OutEntities.AudioEntity;
 import OutEntities.ClusterModel;
 import OutEntities.Entity;
 import OutEntities.IncomingDirectory;
@@ -129,19 +130,21 @@ public class MainGUI extends BorderPane {
                 try {
                     StringBuilder sb = new StringBuilder();
                     Entity entity = tableView.getSelectionModel().getSelectedItem().getEntity();
-                    sb.append(entity.getDirectoryName()).append("\n");
-                    /*if (entity.hasMultiCDAttribute()) {
-                     int count = 1;
-                     for (Entity child : entity.getChildList()) {
-                     if (child.hasAudioAttribute()) {
-                     sb.append("└#").append(count++).append(": ");
-                     sb.append(child.getDirectoryName()).append("\n");
-                     }
-                     }
-                     }*/
-
-                    for (Entity child : entity.getChildList()) {
-                        //sb.append(child.).append("\n");
+                    if (!entity.hasMultiCDAttribute()) {
+                        sb.append(entity.getListOfAudioFiles().get(0).getArtistTitle())
+                                .append(" - ")
+                                .append(entity.getListOfAudioFiles().get(0).getAlbumTitle())
+                                .append(" (")
+                                .append(entity.getListOfAudioFiles().get(0).getYear())
+                                .append(")\n");
+                        for (AudioEntity ae : entity.getListOfAudioFiles()) {
+                            sb.append(ae.getTrackNumber())
+                                    .append(". ")
+                                    .append(ae.getTrackTitle())
+                                    .append("\n");
+                        }
+                    } else {
+                        
                     }
 
                     logTextArea.setText(sb.toString());
