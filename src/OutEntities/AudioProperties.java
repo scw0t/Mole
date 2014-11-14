@@ -2,6 +2,8 @@ package OutEntities;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -12,8 +14,9 @@ import org.jaudiotagger.audio.mp3.MP3File;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.TagException;
 
-public class AudioEntity {
-    
+//Сущность для отображения и изменения данных, содержащихся в отдельном аудиофайле
+public class AudioProperties {
+
     private File file;
     private MP3File audioFile;
     private SimpleStringProperty fileName;
@@ -25,9 +28,9 @@ public class AudioEntity {
     private SimpleStringProperty cd_n;
     private SimpleStringProperty genres;
     private SimpleBooleanProperty hasArtwork;
-    
 
-    public AudioEntity(File file) {
+    public AudioProperties(File file) {
+        Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         this.file = file;
         fileName = new SimpleStringProperty(this, "fileName");
         artistTitle = new SimpleStringProperty(this, "artistTitle");
@@ -38,9 +41,9 @@ public class AudioEntity {
         cd_n = new SimpleStringProperty(this, "cd_n");
         genres = new SimpleStringProperty(this, "genres");
         hasArtwork = new SimpleBooleanProperty(this, "hasArtwork");
-        
+
         fileName.setValue(file.getName());
-        
+
         try {
             audioFile = (MP3File) AudioFileIO.read(file);
             artistTitle.setValue(audioFile.getTag().getFirst(FieldKey.ARTIST));
@@ -139,5 +142,5 @@ public class AudioEntity {
     public boolean getHasArtwork() {
         return hasArtwork.getValue();
     }
-    
+
 }

@@ -10,7 +10,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
-public class ClusterTableView<ClusterModel> extends TableView<ClusterModel> {
+public class ClusterTableView<ClusterModel> extends TableView<ClusterModel>{
 
     private final TableColumn<ClusterModel, Boolean> checkCol;
     private final TableColumn<ClusterModel, String> nameCol;
@@ -21,6 +21,12 @@ public class ClusterTableView<ClusterModel> extends TableView<ClusterModel> {
         nameCol = new TableColumn<ClusterModel, String>("Name");
         checkCol.setGraphic(new ImageView(new Image(new FileInputStream("eye.png"))));
         checkCol.setSortable(false);
+        /*checkCol.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                System.out.println("pressed");
+            }
+        });*/
 
         getColumns().addAll(checkCol, nameCol);
 
@@ -49,5 +55,4 @@ public class ClusterTableView<ClusterModel> extends TableView<ClusterModel> {
     public void setTextArea(TextArea textArea) {
         this.textArea = textArea;
     }
-
 }

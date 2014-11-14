@@ -1,10 +1,11 @@
 package View;
 
 import Gears.LogOutput;
-import OutEntities.AudioEntity;
+import OutEntities.AudioProperties;
 import OutEntities.ClusterModel;
-import OutEntities.Entity;
+import OutEntities.FileProperties;
 import OutEntities.IncomingDirectory;
+import OutEntities.ReleaseProperties;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -128,26 +129,11 @@ public class MainGUI extends BorderPane {
             public void changed(ObservableValue<? extends ClusterModel> observable,
                     ClusterModel oldValue, ClusterModel newValue) {
                 try {
-                    StringBuilder sb = new StringBuilder();
-                    Entity entity = tableView.getSelectionModel().getSelectedItem().getEntity();
-                    if (!entity.hasMultiCDAttribute()) {
-                        sb.append(entity.getListOfAudioFiles().get(0).getArtistTitle())
-                                .append(" - ")
-                                .append(entity.getListOfAudioFiles().get(0).getAlbumTitle())
-                                .append(" (")
-                                .append(entity.getListOfAudioFiles().get(0).getYear())
-                                .append(")\n");
-                        for (AudioEntity ae : entity.getListOfAudioFiles()) {
-                            sb.append(ae.getTrackNumber())
-                                    .append(". ")
-                                    .append(ae.getTrackTitle())
-                                    .append("\n");
-                        }
-                    } else {
-                        
-                    }
+                    
+                    FileProperties entity = tableView.getSelectionModel().getSelectedItem().getEntity();
+                    
 
-                    logTextArea.setText(sb.toString());
+                    //logTextArea.setText(sb.toString());
 
                 } catch (NullPointerException e) {
                     //System.out.println("something happend");
@@ -174,15 +160,48 @@ public class MainGUI extends BorderPane {
             }
         });
     }
+    
+    private void buildReleaseInfo(FileProperties fp){
+        StringBuilder sb = new StringBuilder();
+        ReleaseProperties releaseProperties = fp.getReleaseProperties();
+        if (!releaseProperties.getAudioList().isEmpty()) {
+            int cdNum = 0;
+            
+            if (releaseProperties.artistsQuantity() > 1) {
+                sb.append("VA");
+            } else {
+                //sb.append(releaseProperties.getAlbumTitle().g);
+            }
+            
+            
+            for (ObservableList<AudioProperties> release : releaseProperties.getAudioList()) {
+                if (fp.hasMultiCDAttribute()) {
+                    sb.append("CD").append(cdNum++).append(":");
+                }
+                
+            }
+        }
+        
+        
+        
+        /*if (!entity.hasMultiCDAttribute()) {
+                        sb.append(entity.getListOfAudioFiles().get(0).getArtistTitle())
+                                .append(" - ")
+                                .append(entity.getListOfAudioFiles().get(0).getAlbumTitle())
+                                .append(" (")
+                                .append(entity.getListOfAudioFiles().get(0).getYear())
+                                .append(")\n");
+                        for (AudioProperties ae : entity.getListOfAudioFiles()) {
+                            sb.append(ae.getTrackNumber())
+                                    .append(". ")
+                                    .append(ae.getTrackTitle())
+                                    .append("\n");
+                        }
+                    } else {
 
-    /*private void tableTest() {
-     ObservableList<ClusterModel> clusters = FXCollections.observableArrayList(
-     new ClusterModel("one"),
-     new ClusterModel("two"),
-     new ClusterModel("three")
-     );
-     tableView.setItems(clusters);
-     }*/
+                    }*/
+    }
+
     class MainTask extends Task {
 
         @Override

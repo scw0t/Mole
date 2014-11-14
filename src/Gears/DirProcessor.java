@@ -2,7 +2,7 @@ package Gears;
 
 import OutEntities.ClusterModel;
 import OutEntities.IncomingDirectory;
-import OutEntities.Entity;
+import OutEntities.FileProperties;
 import View.MainGUI;
 import static View.MainGUI.initialDirectoryList;
 import java.io.File;
@@ -31,7 +31,7 @@ import org.jaudiotagger.tag.TagException;
 public class DirProcessor {
 
     private ObservableList<IncomingDirectory> parsedDirList;
-    public static ObservableList<Entity> entityList;
+    public static ObservableList<FileProperties> entityList;
 
     public DirProcessor() {
         entityList = FXCollections.observableArrayList();
@@ -39,8 +39,6 @@ public class DirProcessor {
     }
 
     public void go() {
-        //filterNonAudioDirs(initialDirectoryList.get(0).getValue());
-
         for (IncomingDirectory dirProperty : initialDirectoryList) {
             File dir = dirProperty.getValue();
             if (dir != null && dir.exists()) {
@@ -49,63 +47,24 @@ public class DirProcessor {
         }
 
         for (IncomingDirectory dir : parsedDirList) {
-            //filterNonAudioDirs(dir.getValue());
-
-            Entity entity = new Entity(dir.getValue());
-             entity.lookForChildEntities();
-             entityList.add(entity);
+            FileProperties entity = new FileProperties(dir.getValue());
+            entity.lookForChildEntities();
+            entityList.add(entity);
         }
-
+        
         fillTable();
-        /*System.out.println(parsedDirList.size());
-
-         for (IncomingDirectory dir1 : parsedDirList) {
-         String str2 = "";
-         try {
-         str2 += hasAudio(dir1.getValue()) ? "A+ " : "A- ";
-         str2 += hasImages(dir1.getValue()) ? "I+ " : "I- ";
-         str2 += hasInnerFolder(dir1.getValue()) ? "F+ " : "F- ";
-         str2 += hasMultiCD(dir1.getValue()) ? "C+ " : "C- ";
-         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-         Logger.getLogger(DirProcessor.class.getName()).log(Level.SEVERE, null, ex);
-         } finally {
-         str2 += dir1.getValue().getAbsolutePath();
-         System.out.println(str2);
-         }
-         }*/
     }
 
     private void fillTable() {
         ObservableList<ClusterModel> clusters = FXCollections.observableArrayList();
         if (entityList != null && !entityList.isEmpty()) {
-            for (Entity entity : entityList) {
+            for (FileProperties entity : entityList) {
                 clusters.add(new ClusterModel(entity));
             }
             MainGUI.tableView.setItems(clusters);
             MainGUI.tableView.getCheckCol().prefWidthProperty().bind(MainGUI.tableView.widthProperty().multiply(0.07));
             MainGUI.tableView.getNameCol().prefWidthProperty().bind(MainGUI.tableView.widthProperty().multiply(0.8));
         }
-    }
-
-    private void filterNonAudioDirs(File parent) {
-        String mainPathPart = parent.getAbsolutePath();
-        System.out.println("+++" + mainPathPart);
-        walk(parent);
-        File[] list = parent.listFiles();
-
-        for (File dir : list) {
-            if (dir.isDirectory()) {
-                if (!dir.getAbsolutePath().contains(mainPathPart)) {
-                    mainPathPart = dir.getAbsolutePath();
-                    System.out.println("+++" + mainPathPart);
-                    walk(dir);
-                }
-            }
-
-            //filterNonAudioDirs(dir.getAbsolutePath());
-            //System.out.println(dir.getAbsolutePath());
-        }
-        System.out.println("---------------------");
     }
 
     private void walk(File parent) {

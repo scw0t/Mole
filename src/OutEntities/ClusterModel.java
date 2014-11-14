@@ -9,9 +9,9 @@ public class ClusterModel {
     
     private BooleanProperty checked;
     private StringProperty name;
-    private Entity entity;
+    private FileProperties entity;
     
-    public ClusterModel(Entity entity){
+    public ClusterModel(FileProperties entity){
         this.entity = entity;
         this.checked = new SimpleBooleanProperty(true);
         this.name = new SimpleStringProperty(entity.getDirectoryName());
@@ -41,11 +41,11 @@ public class ClusterModel {
         return checked;
     }
 
-    public Entity getEntity() {
+    public FileProperties getEntity() {
         return entity;
     }
 
-    public void setEntity(Entity entity) {
+    public void setEntity(FileProperties entity) {
         this.entity = entity;
     }
     
