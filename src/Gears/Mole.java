@@ -36,7 +36,7 @@ public class Mole extends Application {
     public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         
-        Scene scene = new Scene(new MainGUI(), 550, 700);
+        Scene scene = new Scene(new MainGUI(), 650, 900);
         scene.getStylesheets().add(getClass().getResource("toolbarStyle.css").toExternalForm());
 
         primaryStage.setTitle("hi!");

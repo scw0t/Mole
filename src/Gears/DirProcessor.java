@@ -124,7 +124,7 @@ public class DirProcessor {
              }
              }*/
 
-            if ((!hasAudio(dir) && !hasMultiCD(dir)) && !hasInnerFolder(dir)) {
+            if ((!hasAudio(dir) && numberOfCD(dir) == 0) && !hasInnerFolder(dir)) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().contains(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);
@@ -132,7 +132,7 @@ public class DirProcessor {
                 }
             }
 
-            if (!hasAudio(dir) && !hasMultiCD(dir) && hasInnerFolder(dir)) {
+            if (!hasAudio(dir) && numberOfCD(dir) == 0 && hasInnerFolder(dir)) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);
@@ -141,7 +141,7 @@ public class DirProcessor {
                 }
             }
 
-            if (hasAudio(dir) && !hasMultiCD(dir) && hasMultiCD(dir.getParentFile())) {
+            if (hasAudio(dir) && numberOfCD(dir) == 0 && numberOfCD(dir.getParentFile()) > 0) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);
@@ -173,7 +173,8 @@ public class DirProcessor {
         return folderList.size() > 1;
     }
 
-    public static boolean hasMultiCD(File dir) {
+    public static int numberOfCD(File dir) {
+        int num = 0;
         File[] directories = dir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File current, String name) {
@@ -181,17 +182,15 @@ public class DirProcessor {
             }
         });
 
-        boolean multicd = false;
         if (directories.length > 1) {
             for (File directory : directories) {
                 if (directory.getName().matches("(?i)^(cd |cd|disc|disc )\\d+")) {
-                    multicd = true;
-                    break;
+                    num++;
                 }
             }
         }
 
-        return multicd;
+        return num;
     }
 
     /*public ObservableList<Entity> getEntityList() {

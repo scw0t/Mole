@@ -5,7 +5,7 @@ import OutEntities.AudioProperties;
 import OutEntities.ClusterModel;
 import OutEntities.FileProperties;
 import OutEntities.IncomingDirectory;
-import OutEntities.ReleaseProperties;
+import OutEntities.Medium;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -114,7 +114,7 @@ public class MainGUI extends BorderPane {
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
         MasterDetailPane pane = new MasterDetailPane();
-        pane.setDividerPosition(0.6);
+        pane.setDividerPosition(0.5);
         pane.setMasterNode(tableViewVbox);
         pane.setDetailNode(textAreaVbox);
         pane.setDetailSide(Side.BOTTOM);
@@ -129,12 +129,9 @@ public class MainGUI extends BorderPane {
             public void changed(ObservableValue<? extends ClusterModel> observable,
                     ClusterModel oldValue, ClusterModel newValue) {
                 try {
-                    
-                    FileProperties entity = tableView.getSelectionModel().getSelectedItem().getEntity();
-                    
-
-                    //logTextArea.setText(sb.toString());
-
+                    logTextArea.clear();
+                    FileProperties selectedRelease = tableView.getSelectionModel().getSelectedItem().getEntity();
+                    logTextArea.setText(buildReleaseInfo(selectedRelease));
                 } catch (NullPointerException e) {
                     //System.out.println("something happend");
                 }
@@ -160,46 +157,44 @@ public class MainGUI extends BorderPane {
             }
         });
     }
-    
-    private void buildReleaseInfo(FileProperties fp){
-        StringBuilder sb = new StringBuilder();
-        ReleaseProperties releaseProperties = fp.getReleaseProperties();
-        if (!releaseProperties.getAudioList().isEmpty()) {
-            int cdNum = 0;
+
+    private String buildReleaseInfo(FileProperties fp) {
+        StringBuilder infoStringBuilder = new StringBuilder();
+        if (fp.getCDn() > 0) {
+            infoStringBuilder.append(fp.getDirectoryName()).append("\n");
             
-            if (releaseProperties.artistsQuantity() > 1) {
-                sb.append("VA");
-            } else {
-                //sb.append(releaseProperties.getAlbumTitle().g);
-            }
-            
-            
-            for (ObservableList<AudioProperties> release : releaseProperties.getAudioList()) {
-                if (fp.hasMultiCDAttribute()) {
-                    sb.append("CD").append(cdNum++).append(":");
+            for (FileProperties childCD : fp.getChildList()) {
+                for (Medium childMedium : childCD.getMediumList()) {
+                    infoStringBuilder.append("#CD")
+                            .append(childMedium.getCDn())
+                            .append("\n");
+                    for (AudioProperties track : childMedium.getListOfAudioFiles()) {
+                        infoStringBuilder.append(track.getTrackNumber())
+                            .append(". ")
+                            .append(track.getTrackTitle())
+                            .append("\n");
+                    }
                 }
-                
+            }
+
+        } else {
+            for (Medium medium : fp.getMediumList()) {
+                infoStringBuilder.append(medium.getArtist())
+                        .append(" - ")
+                        .append(medium.getTitle())
+                        .append(" (")
+                        .append(medium.getYear())
+                        .append(")\n");
+                for (AudioProperties track : medium.getListOfAudioFiles()) {
+                    infoStringBuilder.append(track.getTrackNumber())
+                            .append(". ")
+                            .append(track.getTrackTitle())
+                            .append("\n");
+                }
             }
         }
-        
-        
-        
-        /*if (!entity.hasMultiCDAttribute()) {
-                        sb.append(entity.getListOfAudioFiles().get(0).getArtistTitle())
-                                .append(" - ")
-                                .append(entity.getListOfAudioFiles().get(0).getAlbumTitle())
-                                .append(" (")
-                                .append(entity.getListOfAudioFiles().get(0).getYear())
-                                .append(")\n");
-                        for (AudioProperties ae : entity.getListOfAudioFiles()) {
-                            sb.append(ae.getTrackNumber())
-                                    .append(". ")
-                                    .append(ae.getTrackTitle())
-                                    .append("\n");
-                        }
-                    } else {
 
-                    }*/
+        return infoStringBuilder.toString();
     }
 
     class MainTask extends Task {

@@ -5,7 +5,11 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
@@ -25,9 +29,11 @@ public class AudioProperties {
     private SimpleStringProperty trackTitle;
     private SimpleStringProperty trackNumber;
     private SimpleStringProperty year;
-    private SimpleStringProperty cd_n;
-    private SimpleStringProperty genres;
+    private SimpleIntegerProperty cd_n;
+    private SimpleListProperty<String> genres;
     private SimpleBooleanProperty hasArtwork;
+
+    private final String[] genreDelimiters = {", ", ";", "\\", "/"};
 
     public AudioProperties(File file) {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
@@ -38,8 +44,8 @@ public class AudioProperties {
         trackNumber = new SimpleStringProperty(this, "trackNumber");
         trackTitle = new SimpleStringProperty(this, "trackTitle");
         year = new SimpleStringProperty(this, "year");
-        cd_n = new SimpleStringProperty(this, "cd_n");
-        genres = new SimpleStringProperty(this, "genres");
+        cd_n = new SimpleIntegerProperty(this, "cd_n");
+        genres = new SimpleListProperty(this, "genres");
         hasArtwork = new SimpleBooleanProperty(this, "hasArtwork");
 
         fileName.setValue(file.getName());
@@ -50,9 +56,41 @@ public class AudioProperties {
             albumTitle.setValue(audioFile.getTag().getFirst(FieldKey.ALBUM));
             trackTitle.setValue(audioFile.getTag().getFirst(FieldKey.TITLE));
             trackNumber.setValue(audioFile.getTag().getFirst(FieldKey.TRACK));
-            year.setValue(audioFile.getTag().getFirst(FieldKey.YEAR));
-            cd_n.setValue(audioFile.getTag().getFirst(FieldKey.DISC_NO));
-            genres.setValue(audioFile.getTag().getFirst(FieldKey.GENRE));
+            
+            //Определение года
+            String yearStr = audioFile.getTag().getFirst(FieldKey.YEAR);
+            if (!"".equals(yearStr)) {
+                year.setValue(yearStr);
+            } else {
+                year.setValue("xxxx");
+            }
+            
+            //Определение номера CD
+            String cdNStr = audioFile.getTag().getFirst(FieldKey.DISC_NO);
+            if (!"".equals(cdNStr)) {
+                cdNStr = cdNStr.replaceFirst("^0", "").replaceAll("\\/.+", "").replaceAll("\\D", "");
+                if (!"".equals(cdNStr)) {
+                    cd_n.set(Integer.valueOf(cdNStr));
+                } else {
+                    cd_n.set(0);
+                }
+            } else {
+                cd_n.set(0);
+            }
+            
+            //Определение списка жанров
+            ObservableList<String> genresList = FXCollections.observableArrayList();
+            String[] genresArr = audioFile.getTag().getFirst(FieldKey.GENRE).split(genreDelimiters[0]);
+            if (genresArr.length > 0) {
+                for (String g : genresArr) {
+                    genresList.add(g);
+                }
+            } else {
+                genresList.add(audioFile.getTag().getFirst(FieldKey.GENRE));
+            }
+            genres.set(genresList);
+            
+            //Наличие обложки
             if (!audioFile.getTag().getArtworkList().isEmpty()) {
                 hasArtwork.setValue(true);
             } else {
@@ -123,20 +161,20 @@ public class AudioProperties {
         this.year.setValue(year);
     }
 
-    public String getCd_n() {
+    public int getCdN() {
         return cd_n.getValue();
     }
 
-    public void setCd_n(String cd_n) {
-        this.cd_n.setValue(cd_n);
+    public void setCd_n(int cd_n) {
+        this.cd_n.set(cd_n);
     }
 
-    public String getGenres() {
-        return genres.getValue();
+    public SimpleListProperty<String> getGenres() {
+        return genres;
     }
 
-    public void setGenres(String genres) {
-        this.genres.setValue(genres);
+    public void setGenres(SimpleListProperty genres) {
+        this.genres = genres;
     }
 
     public boolean getHasArtwork() {
