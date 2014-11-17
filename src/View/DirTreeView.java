@@ -11,11 +11,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -37,35 +38,22 @@ import org.controlsfx.control.CheckTreeView;
 
 public class DirTreeView extends Stage {
 
-    private CustomCheckTreeView cctv;
+    private CustomCheckTreeView checkTreeView;
 
     public DirTreeView() {
         setResizable(false);
     }
 
     public void drawGUI() throws FileNotFoundException, IOException {
-        cctv = buildFileSystemBrowser();
-        
+        checkTreeView = buildFileSystemBrowser();
+
         //Кнопка Ok
         Button okButton = new Button("Ok");
         okButton.setMinWidth(60);
         okButton.setOnAction((ActionEvent event) -> {
-            //Получаем список выбранных папок
-            if (!MainGUI.initialDirectoryList.isEmpty()) {
-                MainGUI.initialDirectoryList.clear();
-            }
-            
-            final Iterator<CustomCheckBoxTreeItem> iterator = cctv.getCheckModel().getCheckedItems().iterator();
-            
-            while (iterator.hasNext()) {
-                CustomCheckBoxTreeItem next = iterator.next();
-                MainGUI.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
-            }
-            
-            DirProcessor dirProcessor = new DirProcessor();
-            dirProcessor.go();
-            
-            DirTreeView.this.close();
+            Thread mainProcessThread = new Thread(new ScanTask());
+            mainProcessThread.setDaemon(true);
+            mainProcessThread.start();
         });
 
         //Кнопка Cancel
@@ -74,7 +62,7 @@ public class DirTreeView extends Stage {
         cancelButton.setOnAction((ActionEvent event) -> {
             DirTreeView.this.close();
         });
-        
+
         HBox buttonBox = new HBox();
         buttonBox.setPadding(new Insets(5));
         buttonBox.setAlignment(Pos.CENTER);
@@ -83,16 +71,16 @@ public class DirTreeView extends Stage {
 
         VBox vBox = new VBox();
         vBox.setMaxHeight(Double.MAX_VALUE);
-        vBox.getChildren().addAll(cctv, buttonBox);
-        
+        vBox.getChildren().addAll(checkTreeView, buttonBox);
+
         BorderPane bp = new BorderPane(vBox);
         bp.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        
+
         Scene scene = new Scene(bp, 500, 700);
         setScene(scene);
         show();
     }
-    
+
     //Возвращаем список локальных дисков
     private ArrayList<File> findDrives() {
         File[] drives = File.listRoots();
@@ -116,7 +104,7 @@ public class DirTreeView extends Stage {
         for (File drive : findDrives()) {
             root.getChildren().add(createNode(drive, true));
         }
-        
+
         return new CustomCheckTreeView(root);
     }
 
@@ -151,12 +139,12 @@ public class DirTreeView extends Stage {
                         }
                     };
                 }
-                
+
             });
 
             //initModel();
         }
-        
+
         //Отлавливание изменения списка выбранных элементов
         //Может быть пригодится для потоковой фильтрации нужных папок
         private void initModel() {
@@ -250,5 +238,34 @@ public class DirTreeView extends Stage {
             return dir;
         }
 
-    } 
+    }
+
+    class ScanTask extends Task {
+
+        @Override
+        protected Object call() throws Exception {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    DirTreeView.this.close();
+                    
+                    //Получаем список выбранных папок
+                    if (!MainGUI.initialDirectoryList.isEmpty()) {
+                        MainGUI.initialDirectoryList.clear();
+                    }
+
+                    final Iterator<CustomCheckBoxTreeItem> iterator = checkTreeView.getCheckModel().getCheckedItems().iterator();
+
+                    while (iterator.hasNext()) {
+                        CustomCheckBoxTreeItem next = iterator.next();
+                        MainGUI.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
+                    }
+
+                    DirProcessor dirProcessor = new DirProcessor();
+                    dirProcessor.go();
+                }
+            });
+            return null;
+        }
+    }
 }

@@ -86,7 +86,7 @@ public final class FileProperties {
         testLists();
 
         addChilds();
-        
+
         System.out.println("-----");
     }
 
@@ -96,7 +96,7 @@ public final class FileProperties {
                 new NotFileFilter(TrueFileFilter.INSTANCE),
                 DirectoryFileFilter.DIRECTORY);
         childLinkedList.removeFirst();
-        
+
         int cdNotProcessed = getCDn();
 
         for (File child : childLinkedList) {
@@ -115,22 +115,23 @@ public final class FileProperties {
 
         //?
         /*for (FileProperties child : childList) {
-            child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
-            System.out.print("└-");
-            System.out.println(child.getCurrentDir().getValue().getName());
-            child.testLists();
-        }*/
+         child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
+         System.out.print("└-");
+         System.out.println(child.getCurrentDir().getValue().getName());
+         child.testLists();
+         }*/
     }
 
     public void fillListsOfInnerFiles(FileProperties fp) {
         //System.out.println(dir.getName());
         File currDirectory = fp.getCurrentDir().getValue();
+        int audioNum = 0;
         if (currDirectory.isDirectory()) {
             File[] files = currDirectory.listFiles();
             for (File f : files) {
                 if (f.isFile()) {
                     if (isAudio(f)) {
-                        listOfAudioFiles.add(new AudioProperties(f));
+                        listOfAudioFiles.add(new AudioProperties(f, ++audioNum));
                     } else if (isImage(f)) {
                         listOfImageFiles.add(f);
                     } else {
@@ -138,7 +139,7 @@ public final class FileProperties {
                     }
                 }
             }
-            
+
             if (!fp.listOfAudioFiles.isEmpty()) {
                 Medium medium = new Medium(fp.listOfAudioFiles);
                 medium.setCDn(CDn);
@@ -147,7 +148,7 @@ public final class FileProperties {
             }
         }
     }
-    
+
     private boolean removeUselessChilds() {
         if (hasAudioAttribute()) {
             //System.out.println("Parent: + | " + getParentDir().getValue().getAbsolutePath());
@@ -168,8 +169,7 @@ public final class FileProperties {
         //System.out.println("-----------------");
         return true;
     }
-    
-    
+
     private void testLists() {
         if (!listOfAudioFiles.isEmpty()) {
             System.out.println("--Audio:");

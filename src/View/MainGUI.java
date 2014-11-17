@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -66,19 +67,15 @@ public class MainGUI extends BorderPane {
         Button openButton = new Button("Open");
         openButton.getStyleClass().addAll("first");
         openButton.setOnAction((ActionEvent t) -> {
-            DirTreeView treeView = new DirTreeView();
-            try {
-                initialDirectoryList.clear();
-                treeView.drawGUI();
-            } catch (IOException ex) {
-                Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            Thread mainProcessThread = new Thread(new OpenDialogTask());
+            mainProcessThread.setDaemon(true);
+            mainProcessThread.start();
         });
 
         Button runButton = new Button("Run");
         runButton.getStyleClass().addAll("last");
         runButton.setOnAction((ActionEvent event) -> {
-            Thread mainProcessThread = new Thread(new MainTask());
+            Thread mainProcessThread = new Thread(new TestTask());
             mainProcessThread.setDaemon(true);
             mainProcessThread.start();
         });
@@ -162,7 +159,7 @@ public class MainGUI extends BorderPane {
         StringBuilder infoStringBuilder = new StringBuilder();
         if (fp.getCDn() > 0) {
             infoStringBuilder.append(fp.getDirectoryName()).append("\n");
-            
+
             for (FileProperties childCD : fp.getChildList()) {
                 for (Medium childMedium : childCD.getMediumList()) {
                     infoStringBuilder.append("#CD")
@@ -170,13 +167,12 @@ public class MainGUI extends BorderPane {
                             .append("\n");
                     for (AudioProperties track : childMedium.getListOfAudioFiles()) {
                         infoStringBuilder.append(track.getTrackNumber())
-                            .append(". ")
-                            .append(track.getTrackTitle())
-                            .append("\n");
+                                .append(". ")
+                                .append(track.getTrackTitle())
+                                .append("\n");
                     }
                 }
             }
-
         } else {
             for (Medium medium : fp.getMediumList()) {
                 infoStringBuilder.append(medium.getArtist())
@@ -197,20 +193,45 @@ public class MainGUI extends BorderPane {
         return infoStringBuilder.toString();
     }
 
-    class MainTask extends Task {
+    class OpenDialogTask extends Task {
 
         @Override
         protected Object call() throws Exception {
-            /*DirProcessor dp = new DirProcessor();
-             dp.init();*/
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    DirTreeView treeView = new DirTreeView();
+                    try {
+                        initialDirectoryList.clear();
+                        treeView.drawGUI();
+                    } catch (IOException ex) {
+                        Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            });
+            return null;
+        }
+    }
 
-            System.out.println(tableView.getSelectionModel().getSelectedItems());
+    class TestTask extends Task {
 
-            /*for (ClusterModel cl : tableView.getItems()) {
-             if (cl.isChecked()) {
-             System.out.println(cl.getName());
+        @Override
+        protected Object call() throws Exception {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    TaskDialog td = new TaskDialog();
+                    //td.setPathLabel1("C:\\path\\to\\the\\nowhere");
+                    td.show();
+                }
+            });
+
+            /*if (tableView.getItems().isEmpty()) {
+             System.out.println("NONE");
+             } else {
+             for (ClusterModel get : tableView.getItems()) {
+             System.out.println(get.getName());
              }
-
              }*/
             return null;
         }

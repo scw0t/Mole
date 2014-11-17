@@ -5,6 +5,7 @@ import OutEntities.IncomingDirectory;
 import OutEntities.FileProperties;
 import View.MainGUI;
 import static View.MainGUI.initialDirectoryList;
+import View.TaskDialog;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -16,8 +17,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
@@ -31,7 +34,8 @@ import org.jaudiotagger.tag.TagException;
 public class DirProcessor {
 
     private ObservableList<IncomingDirectory> parsedDirList;
-    public static ObservableList<FileProperties> entityList;
+    public ObservableList<FileProperties> entityList;
+    public TaskDialog dialog;
 
     public DirProcessor() {
         entityList = FXCollections.observableArrayList();
@@ -39,91 +43,24 @@ public class DirProcessor {
     }
 
     public void go() {
-        for (IncomingDirectory dirProperty : initialDirectoryList) {
-            File dir = dirProperty.getValue();
-            if (dir != null && dir.exists()) {
-                removeExcessDirs(dir);
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                ProgressTask task = new ProgressTask();
+                dialog = new TaskDialog();
+                dialog.show();
+                dialog.getPathLabel1().textProperty().bind(task.messageProperty());
+                dialog.getProgressBar().progressProperty().bind(task.progressProperty());
+                MainGUI.tableView.itemsProperty().bind(task.valueProperty());
+                MainGUI.tableView.getSelectionModel().select(0);
+                new Thread(task).start();
+
             }
-        }
-
-        for (IncomingDirectory dir : parsedDirList) {
-            FileProperties entity = new FileProperties(dir.getValue());
-            entity.lookForChildEntities();
-            entityList.add(entity);
-        }
-        
-        fillTable();
-    }
-
-    private void fillTable() {
-        ObservableList<ClusterModel> clusters = FXCollections.observableArrayList();
-        if (entityList != null && !entityList.isEmpty()) {
-            for (FileProperties entity : entityList) {
-                clusters.add(new ClusterModel(entity));
-            }
-            MainGUI.tableView.setItems(clusters);
-            MainGUI.tableView.getCheckCol().prefWidthProperty().bind(MainGUI.tableView.widthProperty().multiply(0.07));
-            MainGUI.tableView.getNameCol().prefWidthProperty().bind(MainGUI.tableView.widthProperty().multiply(0.8));
-        }
-    }
-
-    private void walk(File parent) {
-        try {
-            Path startPath = parent.toPath();
-            Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir,
-                        BasicFileAttributes attrs) {
-                    FileVisitResult res = FileVisitResult.CONTINUE;
-                    File[] list = dir.toFile().listFiles();
-                    System.out.println("Curr dir: " + dir.toString());
-                    for (File f : list) {
-                        if (FilenameUtils.getExtension(f.getName()).toLowerCase().equals("mp3")) {
-                            System.out.println(f.getAbsolutePath());
-                            res = FileVisitResult.CONTINUE;
-                        } else {
-                            res = FileVisitResult.CONTINUE;
-                        }
-                    }
-                    //System.out.println("Dir: " + dir.toString());
-                    return res;
-                }
-
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    //System.out.println("File: " + file.toString());
-                    /*FileVisitResult res;
-                     if (!FilenameUtils.getExtension(file.getFileName().toString()).equals("mp3")) {
-                     System.out.println(file.toString());
-                     res = FileVisitResult.SKIP_SIBLINGS;
-                     } else {
-                     res = FileVisitResult.CONTINUE;
-                     }*/
-
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException e) {
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     private void removeExcessDirs(File dir) {
         try {
-            // фильтр директории, без аудиофайлов
-            /*for (int i = 0; i < parsedDirList.size(); i++) {
-             if (!hasAudio(dir)) {
-                    
-             } else {
-             break;
-             }
-             }*/
-
             if ((!hasAudio(dir) && numberOfCD(dir) == 0) && !hasInnerFolder(dir)) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().contains(dir.getAbsolutePath())) {
@@ -189,15 +126,85 @@ public class DirProcessor {
                 }
             }
         }
-
         return num;
     }
 
-    /*public ObservableList<Entity> getEntityList() {
-     return entityList;
-     }
+    class ProgressTask extends Task<ObservableList<ClusterModel>> {
 
-     public void setEntityList(ObservableList<Entity> entityList) {
-     this.entityList = entityList;
-     }*/
+        @Override
+        protected ObservableList<ClusterModel> call() throws Exception {
+            for (int i = 0; i < initialDirectoryList.size(); i++) {
+                File dir = initialDirectoryList.get(i).getValue();
+                if (dir != null && dir.exists()) {
+                    removeExcessDirs(dir);
+                }
+            }
+
+            for (int i = 0; i < parsedDirList.size(); i++) {
+                FileProperties entity = new FileProperties(parsedDirList.get(i).getValue());
+                updateMessage(entity.getDirectoryName());
+                entity.lookForChildEntities();
+                entityList.add(entity);
+                updateProgress(i + 1, parsedDirList.size());
+            }
+
+            ObservableList<ClusterModel> clusters = FXCollections.observableArrayList();
+
+            if (entityList != null && !entityList.isEmpty()) {
+                for (FileProperties entity : entityList) {
+                    clusters.add(new ClusterModel(entity));
+                }
+            }
+
+            System.out.println(Thread.currentThread());
+
+            return clusters;
+        }
+
+        @Override
+        protected void succeeded() {
+            super.succeeded();
+            if (dialog.isShowing()) {
+                dialog.close();
+            }
+        }
+
+    }
+
+    private void walk(File parent) {
+        try {
+            Path startPath = parent.toPath();
+            Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir,
+                        BasicFileAttributes attrs) {
+                    FileVisitResult res = FileVisitResult.CONTINUE;
+                    File[] list = dir.toFile().listFiles();
+                    System.out.println("Curr dir: " + dir.toString());
+                    for (File f : list) {
+                        if (FilenameUtils.getExtension(f.getName()).toLowerCase().equals("mp3")) {
+                            System.out.println(f.getAbsolutePath());
+                            res = FileVisitResult.CONTINUE;
+                        } else {
+                            res = FileVisitResult.CONTINUE;
+                        }
+                    }
+                    //System.out.println("Dir: " + dir.toString());
+                    return res;
+                }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException e) {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

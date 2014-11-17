@@ -21,6 +21,9 @@ public class ClusterTableView<ClusterModel> extends TableView<ClusterModel>{
         nameCol = new TableColumn<ClusterModel, String>("Name");
         checkCol.setGraphic(new ImageView(new Image(new FileInputStream("eye.png"))));
         checkCol.setSortable(false);
+        
+        checkCol.prefWidthProperty().bind(widthProperty().multiply(0.07));
+        nameCol.prefWidthProperty().bind(widthProperty().multiply(0.8));
         /*checkCol.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {

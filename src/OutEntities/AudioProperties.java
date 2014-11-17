@@ -12,17 +12,20 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
+import org.jaudiotagger.audio.exceptions.CannotWriteException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.audio.mp3.MP3File;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.TagException;
+import org.jaudiotagger.tag.id3.ID3v24Tag;
 
 //Сущность для отображения и изменения данных, содержащихся в отдельном аудиофайле
 public class AudioProperties {
 
     private File file;
     private MP3File audioFile;
+    private int fileNum;
     private SimpleStringProperty fileName;
     private SimpleStringProperty artistTitle;
     private SimpleStringProperty albumTitle;
@@ -35,9 +38,10 @@ public class AudioProperties {
 
     private final String[] genreDelimiters = {", ", ";", "\\", "/"};
 
-    public AudioProperties(File file) {
+    public AudioProperties(File file, int fileNum) {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         this.file = file;
+        this.fileNum = fileNum;
         fileName = new SimpleStringProperty(this, "fileName");
         artistTitle = new SimpleStringProperty(this, "artistTitle");
         albumTitle = new SimpleStringProperty(this, "albumTitle");
@@ -52,15 +56,46 @@ public class AudioProperties {
 
         try {
             audioFile = (MP3File) AudioFileIO.read(file);
-            artistTitle.setValue(audioFile.getTag().getFirst(FieldKey.ARTIST));
-            albumTitle.setValue(audioFile.getTag().getFirst(FieldKey.ALBUM));
-            trackTitle.setValue(audioFile.getTag().getFirst(FieldKey.TITLE));
-            trackNumber.setValue(audioFile.getTag().getFirst(FieldKey.TRACK));
+            
+            if (audioFile.getTag() == null) {
+                audioFile.setTag(new ID3v24Tag());
+                try {
+                    audioFile.commit();
+                } catch (CannotWriteException ex) {
+                    Logger.getLogger(AudioProperties.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                        
+            }
+            
+            if (!audioFile.getTag().getFirst(FieldKey.ARTIST).equals("")) {
+                artistTitle.setValue(audioFile.getTag().getFirst(FieldKey.ARTIST));
+            } else {
+                artistTitle.setValue("Unknown Artist");
+            }
+            
+            if (!audioFile.getTag().getFirst(FieldKey.ALBUM).equals("")) {
+                albumTitle.setValue(audioFile.getTag().getFirst(FieldKey.ALBUM));
+            } else {
+                albumTitle.setValue("Unknown Album");
+            }
+            
+            if (!audioFile.getTag().getFirst(FieldKey.TITLE).equals("")) {
+                trackTitle.setValue(audioFile.getTag().getFirst(FieldKey.TITLE));
+            } else {
+                trackTitle.setValue("Unknown Title");
+            }
+            
+            trackNumber.setValue(String.valueOf(fileNum));
+            /*if (!audioFile.getTag().getFirst(FieldKey.TRACK).equals("")) {
+                trackNumber.setValue(audioFile.getTag().getFirst(FieldKey.TRACK));
+            } else {
+                trackNumber.setValue(String.valueOf(fileNum));
+            }*/
+            
             
             //Определение года
-            String yearStr = audioFile.getTag().getFirst(FieldKey.YEAR);
-            if (!"".equals(yearStr)) {
-                year.setValue(yearStr);
+            if (!audioFile.getTag().getFirst(FieldKey.YEAR).equals("")) {
+                year.setValue(audioFile.getTag().getFirst(FieldKey.YEAR));
             } else {
                 year.setValue("xxxx");
             }
