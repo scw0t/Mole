@@ -5,14 +5,14 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
-public class ClusterModel {
+public class ItemModel {
     
     private BooleanProperty checked;
     private StringProperty name;
-    private FileProperties entity;
+    private ItemProperties itemProperty;
     
-    public ClusterModel(FileProperties entity){
-        this.entity = entity;
+    public ItemModel(ItemProperties entity){
+        this.itemProperty = entity;
         this.checked = new SimpleBooleanProperty(true);
         this.name = new SimpleStringProperty(entity.getDirectoryName());
     }
@@ -41,12 +41,12 @@ public class ClusterModel {
         return checked;
     }
 
-    public FileProperties getEntity() {
-        return entity;
+    public ItemProperties getItemProperty() {
+        return itemProperty;
     }
 
-    public void setEntity(FileProperties entity) {
-        this.entity = entity;
+    public void setItemProperty(ItemProperties itemProperty) {
+        this.itemProperty = itemProperty;
     }
     
 }

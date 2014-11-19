@@ -24,13 +24,13 @@ import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
 //Сущность, систематизирующая папки релиза, предназначенные для обработки и исключающая из нее лишние файлов 
-public final class FileProperties {
+public final class ItemProperties {
 
     private final File dir;
 
     private int CDn;
     private ObservableList<Medium> mediumList;
-    private ObservableList<FileProperties> childList; //список потомков
+    private ObservableList<ItemProperties> childList; //список потомков
 
     private ObjectProperty<File> parentDir; //родительская директория
     private ObjectProperty<File> currentDir; //текущая директория
@@ -46,7 +46,7 @@ public final class FileProperties {
     private final SimpleBooleanProperty VaAttribute; //признак сборника
 
     //принимает директорию из parsedDirList
-    public FileProperties(File dir) {
+    public ItemProperties(File dir) {
         this.dir = dir;
 
         CDn = 0;
@@ -100,7 +100,7 @@ public final class FileProperties {
         int cdNotProcessed = getCDn();
 
         for (File child : childLinkedList) {
-            FileProperties ocd = new FileProperties(child);
+            ItemProperties ocd = new ItemProperties(child);
             ocd.setParentDir(parentDir);
             ocd.setCurrentDir(child);
             if (getCDn() > 0) {
@@ -114,7 +114,7 @@ public final class FileProperties {
         removeUselessChilds();
 
         //?
-        /*for (FileProperties child : childList) {
+        /*for (ItemProperties child : childList) {
          child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
          System.out.print("└-");
          System.out.println(child.getCurrentDir().getValue().getName());
@@ -122,7 +122,7 @@ public final class FileProperties {
          }*/
     }
 
-    public void fillListsOfInnerFiles(FileProperties fp) {
+    public void fillListsOfInnerFiles(ItemProperties fp) {
         //System.out.println(dir.getName());
         File currDirectory = fp.getCurrentDir().getValue();
         int audioNum = 0;
@@ -247,7 +247,7 @@ public final class FileProperties {
         this.VaAttribute.setValue(isVa);
     }
 
-    public ObservableList<FileProperties> getChildList() {
+    public ObservableList<ItemProperties> getChildList() {
         return childList;
     }
 

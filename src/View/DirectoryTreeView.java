@@ -36,11 +36,11 @@ import javafx.util.Callback;
 import javax.swing.filechooser.FileSystemView;
 import org.controlsfx.control.CheckTreeView;
 
-public class DirTreeView extends Stage {
+public class DirectoryTreeView extends Stage {
 
     private CustomCheckTreeView checkTreeView;
 
-    public DirTreeView() {
+    public DirectoryTreeView() {
         setResizable(false);
     }
 
@@ -60,7 +60,7 @@ public class DirTreeView extends Stage {
         Button cancelButton = new Button("Cancel");
         cancelButton.setMinWidth(60);
         cancelButton.setOnAction((ActionEvent event) -> {
-            DirTreeView.this.close();
+            DirectoryTreeView.this.close();
         });
 
         HBox buttonBox = new HBox();
@@ -193,7 +193,7 @@ public class DirTreeView extends Stage {
                     isFirstTimeChildren = false;
                     super.getChildren().setAll(buildChildren(this));
                 } catch (IOException ex) {
-                    Logger.getLogger(DirTreeView.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(DirectoryTreeView.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             return super.getChildren();
@@ -247,18 +247,18 @@ public class DirTreeView extends Stage {
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
-                    DirTreeView.this.close();
+                    DirectoryTreeView.this.close();
                     
                     //Получаем список выбранных папок
-                    if (!MainGUI.initialDirectoryList.isEmpty()) {
-                        MainGUI.initialDirectoryList.clear();
+                    if (!Controller.initialDirectoryList.isEmpty()) {
+                        Controller.initialDirectoryList.clear();
                     }
 
                     final Iterator<CustomCheckBoxTreeItem> iterator = checkTreeView.getCheckModel().getCheckedItems().iterator();
 
                     while (iterator.hasNext()) {
                         CustomCheckBoxTreeItem next = iterator.next();
-                        MainGUI.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
+                        Controller.initialDirectoryList.add(new IncomingDirectory((File) next.getValue()));
                     }
 
                     DirProcessor dirProcessor = new DirProcessor();

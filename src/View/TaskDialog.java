@@ -27,7 +27,6 @@ public class TaskDialog extends Stage{
         
         progressBar = new ProgressBar(0);
         
-        
         pathLabel1 = new Label();
         pathLabel1.setStyle("-fx-font-weight: bold;");
         

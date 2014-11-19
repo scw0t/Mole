@@ -2,8 +2,8 @@ package View;
 
 import Gears.LogOutput;
 import OutEntities.AudioProperties;
-import OutEntities.ClusterModel;
-import OutEntities.FileProperties;
+import OutEntities.ItemModel;
+import OutEntities.ItemProperties;
 import OutEntities.IncomingDirectory;
 import OutEntities.Medium;
 import java.io.FileInputStream;
@@ -36,33 +36,33 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.controlsfx.control.MasterDetailPane;
 
-public class MainGUI extends BorderPane {
-
+public class Controller extends BorderPane {
+    
     private LogOutput logOutput;
-
+    
     private final String initDirPath = "G:\\test";
     private final TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
     public static TextArea logTextArea;
-    public static ClusterTableView<ClusterModel> tableView;
-
-    public MainGUI() throws FileNotFoundException {
+    public static ItemTableView<ItemModel> tableView;
+    
+    public Controller() throws FileNotFoundException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         Logger.getLogger("org.controlsfx").setLevel(Level.OFF);
-
+        setId("background");
+        
         initialDirectoryList = FXCollections.observableArrayList();
-
+        
         pathTextArea = new TextField(initDirPath);
         HBox.setHgrow(pathTextArea, Priority.ALWAYS);
-
+        
         logTextArea = new TextArea();
         logTextArea.setMaxHeight(Double.MAX_VALUE);
         logTextArea.setStyle("-fx-focus-color: transparent;");
-
-        setId("background");
+        
         initElements();
     }
-
+    
     private void initElements() throws FileNotFoundException {
         Button openButton = new Button("Open");
         openButton.getStyleClass().addAll("first");
@@ -71,7 +71,7 @@ public class MainGUI extends BorderPane {
             mainProcessThread.setDaemon(true);
             mainProcessThread.start();
         });
-
+        
         Button runButton = new Button("Run");
         runButton.getStyleClass().addAll("last");
         runButton.setOnAction((ActionEvent event) -> {
@@ -79,13 +79,15 @@ public class MainGUI extends BorderPane {
             mainProcessThread.setDaemon(true);
             mainProcessThread.start();
         });
-
+        
         Button settingsButton = new Button("", new ImageView(new Image(new FileInputStream("settings.png"))));
         settingsButton.getStyleClass().addAll("last");
-
+        settingsButton.setStyle("-fx-focus-color: transparent;"
+                + "-fx-background-insets: 0, 0, 1, 2;"); 
+        
         Region spacer = new Region();
         spacer.getStyleClass().setAll("spacer");
-
+        
         HBox buttonBar = new HBox();
         buttonBar.getStyleClass().setAll("segmented-button-bar");
         buttonBar.getChildren().addAll(openButton, runButton, pathTextArea);
@@ -98,8 +100,8 @@ public class MainGUI extends BorderPane {
         textAreaVbox.getChildren().add(logTextArea);
         VBox.setVgrow(textAreaVbox, Priority.ALWAYS);
         VBox.setVgrow(logTextArea, Priority.ALWAYS);
-
-        tableView = new ClusterTableView<ClusterModel>();
+        
+        tableView = new ItemTableView<ItemModel>();
         tableView.setTextArea(logTextArea);
 
         //wrapper for =tableView
@@ -109,7 +111,7 @@ public class MainGUI extends BorderPane {
         tableViewVbox.getChildren().add(tableView);
         VBox.setVgrow(tableViewVbox, Priority.ALWAYS);
         VBox.setVgrow(tableView, Priority.ALWAYS);
-
+        
         MasterDetailPane pane = new MasterDetailPane();
         pane.setDividerPosition(0.5);
         pane.setMasterNode(tableViewVbox);
@@ -117,25 +119,24 @@ public class MainGUI extends BorderPane {
         pane.setDetailSide(Side.BOTTOM);
         pane.setShowDetailNode(true);
         setCenter(pane);
-
+        
         ToolBar toolbar = new ToolBar();
         toolbar.getItems().addAll(spacer, buttonBar, pathTextArea, settingsButton);
         setTop(toolbar);
-
-        tableView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<ClusterModel>() {
-            public void changed(ObservableValue<? extends ClusterModel> observable,
-                    ClusterModel oldValue, ClusterModel newValue) {
+        
+        tableView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<ItemModel>() {
+            public void changed(ObservableValue<? extends ItemModel> observable,
+                    ItemModel oldValue, ItemModel newValue) {
                 try {
                     logTextArea.clear();
-                    FileProperties selectedRelease = tableView.getSelectionModel().getSelectedItem().getEntity();
+                    ItemProperties selectedRelease = tableView.getSelectionModel().getSelectedItem().getItemProperty();
                     logTextArea.setText(buildReleaseInfo(selectedRelease));
                 } catch (NullPointerException e) {
                     //System.out.println("something happend");
                 }
-
             }
         });
-
+        
         tableView.setOnKeyPressed(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent k) {
@@ -150,17 +151,17 @@ public class MainGUI extends BorderPane {
                 } catch (NullPointerException e) {
                     System.out.println("something happend");
                 }
-
+                
             }
         });
     }
-
-    private String buildReleaseInfo(FileProperties fp) {
+    
+    private String buildReleaseInfo(ItemProperties fp) {
         StringBuilder infoStringBuilder = new StringBuilder();
         if (fp.getCDn() > 0) {
             infoStringBuilder.append(fp.getDirectoryName()).append("\n");
-
-            for (FileProperties childCD : fp.getChildList()) {
+            
+            for (ItemProperties childCD : fp.getChildList()) {
                 for (Medium childMedium : childCD.getMediumList()) {
                     infoStringBuilder.append("#CD")
                             .append(childMedium.getCDn())
@@ -189,52 +190,48 @@ public class MainGUI extends BorderPane {
                 }
             }
         }
-
+        
         return infoStringBuilder.toString();
     }
-
+    
     class OpenDialogTask extends Task {
-
+        
         @Override
         protected Object call() throws Exception {
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
-                    DirTreeView treeView = new DirTreeView();
+                    DirectoryTreeView treeView = new DirectoryTreeView();
                     try {
                         initialDirectoryList.clear();
                         treeView.drawGUI();
                     } catch (IOException ex) {
-                        Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             });
             return null;
         }
     }
-
+    
     class TestTask extends Task {
-
         @Override
         protected Object call() throws Exception {
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
-                    TaskDialog td = new TaskDialog();
-                    //td.setPathLabel1("C:\\path\\to\\the\\nowhere");
-                    td.show();
+                    for (int i = 0; i < 2; i++) {
+                        TestView tv = new TestView();
+                        tv.setArtistLabel("Jimi");
+                        tv.setAlbumLabel("Experience");
+                        tv.initProcess();
+                        tv.showAndWait();
+                    }
+                    
                 }
             });
-
-            /*if (tableView.getItems().isEmpty()) {
-             System.out.println("NONE");
-             } else {
-             for (ClusterModel get : tableView.getItems()) {
-             System.out.println(get.getName());
-             }
-             }*/
             return null;
         }
     }
-
+    
 }

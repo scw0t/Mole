@@ -10,15 +10,15 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
-public class ClusterTableView<ClusterModel> extends TableView<ClusterModel>{
+public class ItemTableView<ItemModel> extends TableView<ItemModel>{
 
-    private final TableColumn<ClusterModel, Boolean> checkCol;
-    private final TableColumn<ClusterModel, String> nameCol;
+    private final TableColumn<ItemModel, Boolean> checkCol;
+    private final TableColumn<ItemModel, String> nameCol;
     private TextArea textArea;
 
-    public ClusterTableView() throws FileNotFoundException {
-        checkCol = new TableColumn<ClusterModel, Boolean>("");
-        nameCol = new TableColumn<ClusterModel, String>("Name");
+    public ItemTableView() throws FileNotFoundException {
+        checkCol = new TableColumn<ItemModel, Boolean>("");
+        nameCol = new TableColumn<ItemModel, String>("Name");
         checkCol.setGraphic(new ImageView(new Image(new FileInputStream("eye.png"))));
         checkCol.setSortable(false);
         
@@ -33,8 +33,8 @@ public class ClusterTableView<ClusterModel> extends TableView<ClusterModel>{
 
         getColumns().addAll(checkCol, nameCol);
 
-        checkCol.setCellValueFactory(new PropertyValueFactory<ClusterModel, Boolean>("checked"));
-        nameCol.setCellValueFactory(new PropertyValueFactory<ClusterModel, String>("name"));
+        checkCol.setCellValueFactory(new PropertyValueFactory<ItemModel, Boolean>("checked"));
+        nameCol.setCellValueFactory(new PropertyValueFactory<ItemModel, String>("name"));
 
         checkCol.setCellFactory(CheckBoxTableCell.forTableColumn(checkCol));
         checkCol.setEditable(true);
@@ -43,11 +43,11 @@ public class ClusterTableView<ClusterModel> extends TableView<ClusterModel>{
 
     }
 
-    public TableColumn<ClusterModel, Boolean> getCheckCol() {
+    public TableColumn<ItemModel, Boolean> getCheckCol() {
         return checkCol;
     }
 
-    public TableColumn<ClusterModel, String> getNameCol() {
+    public TableColumn<ItemModel, String> getNameCol() {
         return nameCol;
     }
 

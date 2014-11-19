@@ -1,10 +1,10 @@
 package Gears;
 
-import OutEntities.ClusterModel;
+import OutEntities.ItemModel;
 import OutEntities.IncomingDirectory;
-import OutEntities.FileProperties;
-import View.MainGUI;
-import static View.MainGUI.initialDirectoryList;
+import OutEntities.ItemProperties;
+import View.Controller;
+import static View.Controller.initialDirectoryList;
 import View.TaskDialog;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -34,7 +34,7 @@ import org.jaudiotagger.tag.TagException;
 public class DirProcessor {
 
     private ObservableList<IncomingDirectory> parsedDirList;
-    public ObservableList<FileProperties> entityList;
+    public ObservableList<ItemProperties> entityList;
     public TaskDialog dialog;
 
     public DirProcessor() {
@@ -51,10 +51,9 @@ public class DirProcessor {
                 dialog.show();
                 dialog.getPathLabel1().textProperty().bind(task.messageProperty());
                 dialog.getProgressBar().progressProperty().bind(task.progressProperty());
-                MainGUI.tableView.itemsProperty().bind(task.valueProperty());
-                MainGUI.tableView.getSelectionModel().select(0);
+                Controller.tableView.itemsProperty().bind(task.valueProperty());
+                Controller.tableView.getSelectionModel().select(0);
                 new Thread(task).start();
-
             }
         });
     }
@@ -129,10 +128,10 @@ public class DirProcessor {
         return num;
     }
 
-    class ProgressTask extends Task<ObservableList<ClusterModel>> {
+    class ProgressTask extends Task<ObservableList<ItemModel>> {
 
         @Override
-        protected ObservableList<ClusterModel> call() throws Exception {
+        protected ObservableList<ItemModel> call() throws Exception {
             for (int i = 0; i < initialDirectoryList.size(); i++) {
                 File dir = initialDirectoryList.get(i).getValue();
                 if (dir != null && dir.exists()) {
@@ -141,18 +140,18 @@ public class DirProcessor {
             }
 
             for (int i = 0; i < parsedDirList.size(); i++) {
-                FileProperties entity = new FileProperties(parsedDirList.get(i).getValue());
+                ItemProperties entity = new ItemProperties(parsedDirList.get(i).getValue());
                 updateMessage(entity.getDirectoryName());
                 entity.lookForChildEntities();
                 entityList.add(entity);
                 updateProgress(i + 1, parsedDirList.size());
             }
 
-            ObservableList<ClusterModel> clusters = FXCollections.observableArrayList();
+            ObservableList<ItemModel> clusters = FXCollections.observableArrayList();
 
             if (entityList != null && !entityList.isEmpty()) {
-                for (FileProperties entity : entityList) {
-                    clusters.add(new ClusterModel(entity));
+                for (ItemProperties entity : entityList) {
+                    clusters.add(new ItemModel(entity));
                 }
             }
 
