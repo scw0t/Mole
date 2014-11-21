@@ -1,7 +1,6 @@
 package Gears;
 
 import View.CatDialog;
-import View.IssuesChooser;
 import Entities.Issue;
 import Entities.Record;
 import java.io.File;
@@ -63,7 +62,6 @@ public class AudioWorker {
     private boolean hasMultiCD;
     private boolean issueChoosed = false;
     private Issue selectedIssue;
-    private IssuesChooser chooser;
     private CatDialog catDialog;
 
     private String country;
@@ -325,8 +323,8 @@ public class AudioWorker {
 
     private void addIssueTags(MP3File file) throws KeyNotFoundException, FieldDataInvalidException {
         if (issueChoosed) {
-            if (selectedIssue.getIssueName() != null) {
-                file.getTag().setField(FieldKey.ALBUM, selectedIssue.getIssueName());
+            if (selectedIssue.getIssueTitle() != null) {
+                file.getTag().setField(FieldKey.ALBUM, selectedIssue.getIssueTitle());
             }
 
             if (selectedIssue.getIssueLabel() != null) {

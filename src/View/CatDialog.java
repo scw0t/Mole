@@ -51,8 +51,8 @@ public class CatDialog extends Stage {
     }
 
     public void initGUI() {
-        setOkButton(new Button("OK"));
-        setCancelButton(new Button("Cancel"));
+        okButton = new Button("OK");
+        cancelButton = new Button("Cancel");
         catList = new CatList(null);
 
         okButton.setPrefWidth(70);
@@ -137,7 +137,7 @@ public class CatDialog extends Stage {
         }
 
         private void init() {
-            Label nameLabel = new Label(getIssue().getIssueName());
+            Label nameLabel = new Label(getIssue().getIssueTitle());
             Label attrLabel = new Label(getIssue().getIssueAttributes());
             Label yearLabel = new Label(getIssue().getIssueYear());
             Label formLabel = new Label(getIssue().getIssueFormats());

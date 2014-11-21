@@ -1,15 +1,14 @@
 package Gears;
 
 import OutEntities.ItemProperties;
-import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 
 public class TagProcessor {
 
-    ObservableList<ItemProperties> itemsList;
+    ItemProperties itemsProps;
     
-    public TagProcessor(ObservableList<ItemProperties> itemsList) {
-        this.itemsList = itemsList;
+    public TagProcessor(ItemProperties itemsProps) {
+        this.itemsProps = itemsProps;
         
         
     }

@@ -7,16 +7,14 @@ import Entities.Person;
 import Entities.Record;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-public class RYMParser implements Runnable {
+public class RYMParser{
 
     private LogOutput logOutput;
 
@@ -25,7 +23,7 @@ public class RYMParser implements Runnable {
     private final String initVAUrl = "http://rateyourmusic.com/release/comp/various_artists_f2/";
     private final String rymLink = "http://rateyourmusic.com";
 
-    private int iterateCount; // кол-во итераций для посика нужного исполнителя
+    private int iterateCount; // кол-во итераций для поиска нужного исполнителя
 
     private String audioArtistName = "";
     private String audioAlbumName = "";
@@ -65,11 +63,7 @@ public class RYMParser implements Runnable {
                     .timeout(20000).get();
             Element contentTable = doc.getElementsByClass("artist_info").first();
 
-            String pattern = "\\d{4}-(\\d{2,4}|present)|\\d{4}";
-            Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
-
             RYMArtistName = doc.getElementsByClass("artist_name_hdr").first().text();
-
             artist = new Artist(RYMArtistName);
 
             if (contentTable != null) {
@@ -163,7 +157,6 @@ public class RYMParser implements Runnable {
                                 getArtist().setGenres(artistGenres);
                                 break;
                         }
-
                     }
                 }
                 parseArtistDiscography(doc);
@@ -173,7 +166,6 @@ public class RYMParser implements Runnable {
             }
 
         } catch (IOException ex) {
-            //ex.printStackTrace();
             System.out.println("URL. Status=404");
             parsed = false;
         } 
@@ -181,10 +173,8 @@ public class RYMParser implements Runnable {
     }
 
     public boolean parseAlbumInfo() {
-
         boolean parsed = false;
         try {
-
             Document doc = Jsoup.connect(currentAlbumUrl)
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
@@ -209,7 +199,6 @@ public class RYMParser implements Runnable {
                     if (subTableHeader != null) {
                         if (subTableHeader.text().equals("Artist")) {
                             System.out.println("-----Artist-----");
-                            //artistName = contentTable.select("tr").get(i).getElementsByClass("artist").first().text();
                             Elements artistElements = contentTable.select("tr").get(i).getElementsByClass("artist");
 
                             if (artistElements.size() > 1) {
@@ -265,11 +254,6 @@ public class RYMParser implements Runnable {
                             }
                             record.setGenres(albumGenres);
                         }
-
-                        if (parsed) {
-
-                        }
-
                     }
                 }
                 record.setIssues(parseIssuesInfo(doc, record));
@@ -341,11 +325,11 @@ public class RYMParser implements Runnable {
                 }
 
                 if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
-                    issue.setIssueName(issuesElements.get(i).getElementsByClass("sametitle").first().text());
+                    issue.setIssueTitle(issuesElements.get(i).getElementsByClass("sametitle").first().text());
                 }
 
                 if (!issuesElements.get(i).getElementsByClass("issue_title").isEmpty()) {
-                    issue.setIssueName(issuesElements.get(i).getElementsByClass("issue_title").first().
+                    issue.setIssueTitle(issuesElements.get(i).getElementsByClass("issue_title").first().
                             getElementsByTag("a").text());
                 }
 
@@ -437,7 +421,6 @@ public class RYMParser implements Runnable {
     }
 
     public boolean parseVAInfo() {
-
         boolean parsed = false;
         try {
             setCurrentAlbumUrl(initVAUrl + validateUrl(audioAlbumName));
@@ -637,24 +620,6 @@ public class RYMParser implements Runnable {
         return records;
     }
 
-    private String getReleaseViewLink(Document doc) {
-        String releaseLink = "";
-
-        Element content = doc.getElementsByClass("issues").first();
-
-        if (content != null) {
-            Element linkElement = content.getElementsByClass("issue_info").first().getElementsByAttribute("href").first();
-            if (linkElement != null) {
-                releaseLink = linkElement.attr("href");
-            } else {
-                releaseLink = "";
-            }
-
-        }
-
-        return releaseLink;
-    }
-
     public ArrayList<Person> parseMembers(String membersString) {
         ArrayList<Person> persons = new ArrayList<>();
         String periodPattern = "\\d{4}-\\d{2}";
@@ -705,7 +670,6 @@ public class RYMParser implements Runnable {
         }
 
         return persons;
-
     }
 
     public String[] parseDate(String RYMFormedString) {
@@ -774,14 +738,7 @@ public class RYMParser implements Runnable {
         String formed[] = new String[2];
         formed[0] = date;
         formed[1] = country;
-
-        /*System.out.println(resultString);
-         System.out.println(country);*/
         return formed;
-    }
-
-    private ArrayList<String> parseLocation(String string) {
-        return new ArrayList<>(Arrays.asList(string.split(", ")));
     }
 
     public String getArtistUrl() {
@@ -1184,8 +1141,4 @@ public class RYMParser implements Runnable {
         this.currentArtistUrl = currentArtistUrl;
     }
 
-    @Override
-    public void run() {
-
-    }
 }

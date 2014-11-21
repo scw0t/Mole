@@ -3,7 +3,7 @@ package Entities;
 public class Issue {
     
     private boolean isPrimary;
-    private String issueName;
+    private String issueTitle;
     private String issueAttributes;
     private String issueYear;
     private String issueFormats;
@@ -17,7 +17,7 @@ public class Issue {
     }
     
     public void printAll(){
-        System.out.println(issueName + " | " + issueAttributes);
+        System.out.println(issueTitle + " | " + issueAttributes);
         System.out.println(issueYear + " | " + issueFormats + " | " + issueLabel + " | " + issueCountries);
     }
 
@@ -29,12 +29,12 @@ public class Issue {
         this.isPrimary = isPrimary;
     }
 
-    public String getIssueName() {
-        return issueName;
+    public String getIssueTitle() {
+        return issueTitle;
     }
 
-    public void setIssueName(String issueName) {
-        this.issueName = issueName;
+    public void setIssueTitle(String issueTitle) {
+        this.issueTitle = issueTitle;
     }
 
     public String getIssueAttributes() {

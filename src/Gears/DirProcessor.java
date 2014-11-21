@@ -1,6 +1,6 @@
 package Gears;
 
-import OutEntities.ItemModel;
+import View.ItemModel;
 import OutEntities.IncomingDirectory;
 import OutEntities.ItemProperties;
 import View.Controller;
@@ -34,11 +34,11 @@ import org.jaudiotagger.tag.TagException;
 public class DirProcessor {
 
     private ObservableList<IncomingDirectory> parsedDirList;
-    public ObservableList<ItemProperties> entityList;
+    public ObservableList<ItemProperties> itemPropertiesList;
     public TaskDialog dialog;
 
     public DirProcessor() {
-        entityList = FXCollections.observableArrayList();
+        itemPropertiesList = FXCollections.observableArrayList();
         parsedDirList = FXCollections.observableArrayList(initialDirectoryList);
     }
 
@@ -140,18 +140,18 @@ public class DirProcessor {
             }
 
             for (int i = 0; i < parsedDirList.size(); i++) {
-                ItemProperties entity = new ItemProperties(parsedDirList.get(i).getValue());
-                updateMessage(entity.getDirectoryName());
-                entity.lookForChildEntities();
-                entityList.add(entity);
+                ItemProperties itemProps = new ItemProperties(parsedDirList.get(i).getValue());
+                updateMessage(itemProps.getDirectoryName());
+                itemProps.lookForChildEntities();
+                itemPropertiesList.add(itemProps);
                 updateProgress(i + 1, parsedDirList.size());
             }
 
             ObservableList<ItemModel> clusters = FXCollections.observableArrayList();
 
-            if (entityList != null && !entityList.isEmpty()) {
-                for (ItemProperties entity : entityList) {
-                    clusters.add(new ItemModel(entity));
+            if (itemPropertiesList != null && !itemPropertiesList.isEmpty()) {
+                for (ItemProperties itemProps : itemPropertiesList) {
+                    clusters.add(new ItemModel(itemProps));
                 }
             }
 
