@@ -11,7 +11,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
 import javax.activation.MimetypesFileTypeMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -28,7 +27,7 @@ public final class ItemProperties {
 
     private final File dir;
 
-    private int CDn;
+    private int cdN;
     private ObservableList<Medium> mediumList;
     private ObservableList<ItemProperties> childList; //список потомков
 
@@ -41,21 +40,22 @@ public final class ItemProperties {
 
     private final SimpleStringProperty directoryName; //Имя директории
     private final SimpleBooleanProperty audioAttribute; //Наличие аудио
-    private final SimpleIntegerProperty numOfCD; //наличие нескольких дисков
+    private final SimpleIntegerProperty cdNAttribute; //наличие нескольких дисков
     private final SimpleBooleanProperty imageAttribute; //наличие картинок
-    private final SimpleBooleanProperty VaAttribute; //признак сборника
+    private final SimpleBooleanProperty vaAttribute; //признак сборника
 
     //принимает директорию из parsedDirList
     public ItemProperties(File dir) {
         this.dir = dir;
 
-        CDn = 0;
+        cdN = 0;
         currentDir = new SimpleObjectProperty(this, "currentDir");
         directoryName = new SimpleStringProperty(this, "directoryName");
         audioAttribute = new SimpleBooleanProperty(this, "audioAttribute");
-        numOfCD = new SimpleIntegerProperty(this, "numOfCD");
+        cdNAttribute = new SimpleIntegerProperty(this, "cdN");
         imageAttribute = new SimpleBooleanProperty(this, "imageAttribute");
-        VaAttribute = new SimpleBooleanProperty(this, "VaAttribute");
+        vaAttribute = new SimpleBooleanProperty(this, "vaAttribute");
+        vaAttribute.setValue(Boolean.FALSE);
 
         mediumList = FXCollections.observableArrayList();
         listOfAudioFiles = FXCollections.observableArrayList();
@@ -97,15 +97,15 @@ public final class ItemProperties {
                 DirectoryFileFilter.DIRECTORY);
         childLinkedList.removeFirst();
 
-        int cdNotProcessed = getCDn();
+        int cdNotProcessed = getCdN();
 
         for (File child : childLinkedList) {
             ItemProperties ocd = new ItemProperties(child);
             ocd.setParentDir(parentDir);
             ocd.setCurrentDir(child);
-            if (getCDn() > 0) {
+            if (getCdN() > 0) {
                 cdNotProcessed--;
-                CDn = getCDn() - cdNotProcessed;
+                cdN = getCdN() - cdNotProcessed;
             }
             ocd.fillListsOfInnerFiles(ocd);
             childList.add(ocd);
@@ -142,8 +142,11 @@ public final class ItemProperties {
 
             if (!fp.listOfAudioFiles.isEmpty()) {
                 Medium medium = new Medium(fp.listOfAudioFiles);
-                medium.setCDn(CDn);
+                medium.setCdN(cdN);
                 medium.look();
+                if (medium.getArtist().equals("VA")) {
+                    setVaAttribute(true);
+                }
                 mediumList.add(medium);
             }
         }
@@ -211,8 +214,8 @@ public final class ItemProperties {
         return audioAttribute.getValue();
     }
 
-    public int getCDn() {
-        return numOfCD.getValue();
+    public int getCdN() {
+        return cdNAttribute.getValue();
     }
 
     public boolean hasImageAttribute() {
@@ -220,7 +223,7 @@ public final class ItemProperties {
     }
 
     public boolean hasVaAttribute() {
-        return VaAttribute.getValue();
+        return vaAttribute.getValue();
     }
 
     public ObjectProperty<File> getParentDir() {
@@ -236,7 +239,7 @@ public final class ItemProperties {
     }
 
     public void setNumOfCD(int numOfCD) {
-        this.numOfCD.setValue(numOfCD);
+        this.cdNAttribute.setValue(numOfCD);
     }
 
     public void setImageAttribute(boolean isImage) {
@@ -244,7 +247,7 @@ public final class ItemProperties {
     }
 
     public void setVaAttribute(boolean isVa) {
-        this.VaAttribute.setValue(isVa);
+        this.vaAttribute.setValue(isVa);
     }
 
     public ObservableList<ItemProperties> getChildList() {

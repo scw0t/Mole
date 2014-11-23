@@ -3,16 +3,22 @@ package View;
 import Entities.Artist;
 import Entities.Issue;
 import Entities.Record;
+import Gears.DirProcessor;
+import Gears.FinalProcess;
 import Gears.LogOutput;
 import Gears.TagProcessor;
 import OutEntities.AudioProperties;
 import OutEntities.ItemProperties;
 import OutEntities.IncomingDirectory;
 import OutEntities.Medium;
+import View.CListView.CModel;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
@@ -31,21 +37,28 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToolBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.NotFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.controlsfx.control.MasterDetailPane;
 
 public class Controller extends BorderPane {
 
     private LogOutput logOutput;
 
-    private final String initDirPath = "G:\\test";
-    private final TextField pathTextArea;
+    private final String initDirPath = "I:\\Music\\!test\\";
+    public static TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
     public static TextArea logTextArea;
     public static ItemTableView<ItemModel> tableView;
@@ -65,6 +78,8 @@ public class Controller extends BorderPane {
         logTextArea.setMaxHeight(Double.MAX_VALUE);
         logTextArea.setStyle("-fx-focus-color: transparent;");
 
+        initDragNdropHandler();
+
         initElements();
     }
 
@@ -80,7 +95,7 @@ public class Controller extends BorderPane {
         Button runButton = new Button("Run");
         runButton.getStyleClass().addAll("last");
         runButton.setOnAction((ActionEvent event) -> {
-            Thread mainProcessThread = new Thread(new TestTask());
+            Thread mainProcessThread = new Thread(new CDialogTask());
             mainProcessThread.setDaemon(true);
             mainProcessThread.start();
         });
@@ -164,13 +179,13 @@ public class Controller extends BorderPane {
 
     private String buildReleaseInfo(ItemProperties fp) {
         StringBuilder infoStringBuilder = new StringBuilder();
-        if (fp.getCDn() > 0) {
+        if (fp.getCdN() > 0) {
             infoStringBuilder.append(fp.getDirectoryName()).append("\n");
 
             for (ItemProperties childCD : fp.getChildList()) {
                 for (Medium childMedium : childCD.getMediumList()) {
                     infoStringBuilder.append("#CD")
-                            .append(childMedium.getCDn())
+                            .append(childMedium.getCdN())
                             .append("\n");
                     for (AudioProperties track : childMedium.getListOfAudioFiles()) {
                         infoStringBuilder.append(track.getTrackNumber())
@@ -184,7 +199,7 @@ public class Controller extends BorderPane {
             for (Medium medium : fp.getMediumList()) {
                 infoStringBuilder.append(medium.getArtist())
                         .append(" - ")
-                        .append(medium.getTitle())
+                        .append(medium.getAlbum())
                         .append(" (")
                         .append(medium.getYear())
                         .append(")\n");
@@ -198,6 +213,91 @@ public class Controller extends BorderPane {
         }
 
         return infoStringBuilder.toString();
+    }
+
+    private void initDragNdropHandler() {
+        setOnDragOver((DragEvent event) -> {
+            Dragboard db = event.getDragboard();
+            if (db.hasFiles()) {
+                event.acceptTransferModes(TransferMode.LINK);
+            } else {
+                event.consume();
+            }
+        });
+
+        setOnDragDropped((DragEvent event) -> {
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                if (!initialDirectoryList.isEmpty()) {
+                    initialDirectoryList.clear();
+                }
+                success = true;
+                for (File file : db.getFiles()) {
+                    if (file.isDirectory()) {
+                        LinkedList<File> folderList = (LinkedList) FileUtils.listFilesAndDirs(file,
+                                new NotFileFilter(TrueFileFilter.INSTANCE),
+                                DirectoryFileFilter.DIRECTORY);
+                        for (File folder : folderList) {
+                            initialDirectoryList.add(new IncomingDirectory(folder));
+                        }
+                    }
+                }
+            }
+            event.setDropCompleted(success);
+            if (event.isDropCompleted()) {
+                Thread mainProcessThread = new Thread(new ScanTask());
+                mainProcessThread.setDaemon(true);
+                mainProcessThread.start();
+            }
+            event.consume();
+        });
+
+    }
+
+    class ScanTask extends Task {
+
+        @Override
+        protected Object call() throws Exception {
+            Platform.runLater(new Runnable() {
+                @Override
+                public void run() {
+                    DirProcessor processor = new DirProcessor();
+                    processor.go();
+                    //tableView.getSelectionModel().clearSelection();
+                    tableView.getSelectionModel().select(0);
+                }
+            });
+            return null;
+        }
+    }
+
+    public static void runAndWait(Runnable action) {
+        if (action == null) {
+            throw new NullPointerException("action");
+        }
+
+        // run synchronously on JavaFX thread
+        if (Platform.isFxApplicationThread()) {
+            action.run();
+            return;
+        }
+
+        // queue on JavaFX thread and wait for completion
+        final CountDownLatch doneLatch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } finally {
+                doneLatch.countDown();
+            }
+        });
+
+        try {
+            doneLatch.await();
+        } catch (InterruptedException e) {
+            // ignore exception
+        }
     }
 
     class OpenDialogTask extends Task {
@@ -220,38 +320,90 @@ public class Controller extends BorderPane {
         }
     }
 
-    class TestTask extends Task {
+    class CDialogTask extends Task {
 
         @Override
         protected Object call() throws Exception {
+
             Platform.runLater(() -> {
-                /*if (!tableView.getItems().isEmpty()) {
+                if (!tableView.getItems().isEmpty()) {
                     for (ItemModel item : tableView.getItems()) {
                         if (item.isChecked()) {
-                            
+                            TagProcessor tagProcessor = new TagProcessor(item.getItemProperty());
+                            FinalProcess finalProcess = new FinalProcess(item.getItemProperty());
+                            finalProcess.setRymp(tagProcessor.getRymp());
+
+                            ParserTask parserTask = new ParserTask();
+                            parserTask.setTagProcessor(tagProcessor);
+
+                            CListView cListView = new CListView();
+                            cListView.setFinalProcess(finalProcess);
+                            cListView.getcTable().itemsProperty().bind(parserTask.valueProperty());
+                            cListView.getIndicator().progressProperty().bind(parserTask.progressProperty());
+                            cListView.getStateLabel().textProperty().bind(parserTask.messageProperty());
+
+                            //runAndWait(parserTask);
+                            new Thread(parserTask).start();
+                            cListView.showAndWait();
                         }
                     }
-                }*/
-
-                TagProcessor tagProc = new TagProcessor(null);
-
-                if (!testRecList.isEmpty() && testRecList != null) {
-
-                    for (Record rec : testRecList) {
-                        CListView cListView = new CListView();
-                        cListView.setContent(rec.getIssues());
-                        cListView.showAndWait();
-                        if (cListView.isTerminated()) {
-                            break;
-                        }
-                    }
-
-                } else {
-                    System.out.println("trl = null");
                 }
+
+                /*if (!testRecList.isEmpty() && testRecList != null) {
+                 for (Record rec : testRecList) {
+                 CListView cListView = new CListView();
+                 cListView.setContent(rec.getIssues());
+                 cListView.showAndWait();
+                 if (cListView.isTerminated()) {
+                 break;
+                 }
+                 }
+                 } else {
+                 System.out.println("trl = null");
+                 }*/
             });
+
             return null;
         }
+    }
+
+    class ParserTask extends Task<ObservableList<CModel>> {
+
+        private TagProcessor tagProcessor;
+
+        @Override
+        protected ObservableList<CModel> call() throws Exception {
+            ObservableList<CModel> resultList = FXCollections.observableArrayList();
+
+            tagProcessor.getMessageProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+                updateMessage(newValue);
+            });
+
+            try {
+                tagProcessor.launch();
+                if (tagProcessor.getIssueList().isEmpty()) {
+                    updateMessage("Nothing founded");
+                } else {
+                    updateMessage("Searching complete");
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                updateProgress(1.0f, 1.0f);
+            }
+
+            for (Issue issue : tagProcessor.getIssueList()) {
+                resultList.add(new CModel(issue));
+            }
+
+            return resultList;
+        }
+
+        public void setTagProcessor(TagProcessor tagProcessor) {
+            this.tagProcessor = tagProcessor;
+        }
+
     }
 
     private void createTestRecordList() {

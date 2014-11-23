@@ -10,11 +10,13 @@ public class ItemModel {
     
     private BooleanProperty checked;
     private StringProperty name;
+    private StringProperty progress;
     private ItemProperties itemProperty;
     
     public ItemModel(ItemProperties entity){
         this.itemProperty = entity;
         this.checked = new SimpleBooleanProperty(true);
+        this.progress = new SimpleStringProperty("done");
         this.name = new SimpleStringProperty(entity.getDirectoryName());
     }
 
@@ -48,6 +50,14 @@ public class ItemModel {
 
     public void setItemProperty(ItemProperties itemProperty) {
         this.itemProperty = itemProperty;
+    }
+
+    public String getProgress() {
+        return progress.getValue();
+    }
+
+    public void setProgress(String progress) {
+        this.progress.setValue(progress);
     }
     
 }

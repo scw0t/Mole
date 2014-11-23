@@ -9,32 +9,34 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class RYMParser{
-
-    private LogOutput logOutput;
-
-    private final String initArtistUrl = "http://rateyourmusic.com/artist/";
-    private final String initAlbumUrl = "http://rateyourmusic.com/release/album/";
-    private final String initVAUrl = "http://rateyourmusic.com/release/comp/various_artists_f2/";
-    private final String rymLink = "http://rateyourmusic.com";
+    
+    private final String rymUrl = "http://rateyourmusic.com";
+    private final String rymArtistUrl = "http://rateyourmusic.com/artist/";
+    private final String rymAlbumUrl = "http://rateyourmusic.com/release/album/";
+    private final String rymVAUrl = "http://rateyourmusic.com/release/comp/various_artists_f2/";
+    
+    private StringProperty message;
 
     private int iterateCount; // кол-во итераций для поиска нужного исполнителя
 
-    private String audioArtistName = "";
-    private String audioAlbumName = "";
+    private String inputArtistName = "";
+    private String inputAlbumName = "";
 
-    private String RYMArtistName = "";
+    private String rymArtistName = "";
 
     private String currentAlbumUrl = "";
     private String currentArtistUrl = "";
     private String currentVAUrl = "";
 
-    private ArrayList<Record> albumRecords;
+    private ArrayList<Record> lpRecords;
     private ArrayList<Record> liveRecords;
     private ArrayList<Record> epRecords;
     private ArrayList<Record> singleRecords;
@@ -44,8 +46,8 @@ public class RYMParser{
     private ArrayList<Record> bootlegRecords;
     private ArrayList<Record> videoRecords;
 
-    private Artist artist;
-    private Record record;
+    private Artist currentArtist;
+    private Record currentRecord;
 
     public RYMParser() {
         iterateCount = 0;
@@ -53,18 +55,19 @@ public class RYMParser{
 
     /*
      Разбираем страницу исполнителя
-     name - имя исполнителя и формате "Artist Name"
      */
-    public boolean parseArtistInfo(String name) {
+    public boolean parseArtistInfo(String inputArtistName) {
         boolean parsed = false;
         try {
-            Document doc = Jsoup.connect(initArtistUrl + validateUrl(name))
+            Document doc = Jsoup.connect(rymArtistUrl + validateUrl(inputArtistName))
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
             Element contentTable = doc.getElementsByClass("artist_info").first();
 
-            RYMArtistName = doc.getElementsByClass("artist_name_hdr").first().text();
-            artist = new Artist(RYMArtistName);
+            rymArtistName = doc.getElementsByClass("artist_name_hdr").first().text();
+            currentArtist = new Artist(rymArtistName);
+            
+            message.setValue("Search artist: " + inputArtistName);
 
             if (contentTable != null) {
                 System.out.println("-----------------------------------------------------");
@@ -76,26 +79,26 @@ public class RYMParser{
                             case "Formed": {
                                 System.out.println("-----Formed-----");
                                 String cleanedString = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
-                                getArtist().setFormedDate(parseDate(cleanedString)[0]);
-                                getArtist().setCountry(parseDate(cleanedString)[1]);
+                                getCurrentArtist().setFormedDate(parseDate(cleanedString)[0]);
+                                getCurrentArtist().setCountry(parseDate(cleanedString)[1]);
                                 break;
                             }
                             case "Born": {
                                 System.out.println("-----Born-----");
                                 String cleanedString = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
-                                getArtist().setFormedDate(parseDate(cleanedString)[0]);
-                                getArtist().setCountry(parseDate(cleanedString)[1]);
+                                getCurrentArtist().setFormedDate(parseDate(cleanedString)[0]);
+                                getCurrentArtist().setCountry(parseDate(cleanedString)[1]);
                                 break;
                             }
                             case "Disbanded":
                                 System.out.println("-----Disbanded-----");
                                 String cleanedString = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
-                                getArtist().setDiedDate(parseDate(cleanedString)[0]);
+                                getCurrentArtist().setDiedDate(parseDate(cleanedString)[0]);
                                 break;
                             case "Died":
                                 System.out.println("-----Died-----");
                                 String cs = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
-                                getArtist().setDiedDate(parseDate(cs)[0]);
+                                getCurrentArtist().setDiedDate(parseDate(cs)[0]);
                                 break;
                             case "Members":
                                 System.out.println("-----Members-----");
@@ -104,7 +107,7 @@ public class RYMParser{
                                 Document subdoc = Jsoup.parse(splitSubstrings[0]);
                                 Element subMembers = subdoc.body();
                                 membersString = subMembers.text().replace(subDiv.text() + " ", "");
-                                getArtist().setMembers(parseMembers(membersString));
+                                getCurrentArtist().setMembers(parseMembers(membersString));
                                 break;
                             case "Member of":
                                 System.out.println("-----Member of-----");
@@ -116,7 +119,7 @@ public class RYMParser{
                                     }
                                     membersList.add(new Artist(memberOf[j]));
                                 }
-                                getArtist().setMemberOf(membersList);
+                                getCurrentArtist().setMemberOf(membersList);
                                 break;
                             case "Related Artists":
                                 System.out.println("-----Related Artists-----");
@@ -128,7 +131,7 @@ public class RYMParser{
                                     }
                                     relatedList.add(new Artist(related[j]));
                                 }
-                                getArtist().setRelated(relatedList);
+                                getCurrentArtist().setRelated(relatedList);
                                 break;
                             case "Also Known As":
                                 System.out.println("-----Also Known As-----");
@@ -140,7 +143,7 @@ public class RYMParser{
                                     }
                                     akaList.add(aka[j]);
                                 }
-                                getArtist().setAka(akaList);
+                                getCurrentArtist().setAka(akaList);
                                 break;
                             case "Genres":
                                 System.out.println("-----Genres-----");
@@ -154,7 +157,7 @@ public class RYMParser{
                                         artistGenres.add(genre);
                                     }
                                 }
-                                getArtist().setGenres(artistGenres);
+                                getCurrentArtist().setGenres(artistGenres);
                                 break;
                         }
                     }
@@ -180,6 +183,8 @@ public class RYMParser{
                     .timeout(20000).get();
 
             String fixUrl = fixAlbumUrl(doc);
+            
+            message.setValue("Search album: " + inputAlbumName);
 
             if (!fixUrl.equals(doc.baseUri())) {
                 currentAlbumUrl = fixUrl;
@@ -193,7 +198,7 @@ public class RYMParser{
 
             if (contentTable != null) {
                 System.out.println("-----------------------------------------------------");
-                setRecord(new Record());
+                setCurrentRecord(new Record());
                 for (int i = 0; i < contentTable.select("tr").size(); i++) {
                     Element subTableHeader = contentTable.select("th").get(i);
                     if (subTableHeader != null) {
@@ -208,33 +213,33 @@ public class RYMParser{
                                     subArtist.setLink(element.attr("href"));
                                     subArtists.add(subArtist);
                                 }
-                                record.setArtist(subArtists.get(i));
-                                record.setSubArtists(subArtists);
+                                currentRecord.setArtist(subArtists.get(i));
+                                currentRecord.setSubArtists(subArtists);
                             } else {
                                 Artist recArtist = new Artist(artistElements.first().text());
                                 recArtist.setLink(artistElements.first().attr("href"));
-                                record.setArtist(recArtist);
+                                currentRecord.setArtist(recArtist);
                             }
 
-                            RYMArtistName = contentTable.select("tr").get(i).getElementsByClass("artist").first()
+                            rymArtistName = contentTable.select("tr").get(i).getElementsByClass("artist").first()
                                     .attr("href").replaceFirst("/artist/", "");
-                            System.out.println(RYMArtistName);
+                            System.out.println(rymArtistName);
                         }
 
                         if (subTableHeader.text().equals("Type")) {
                             System.out.println("-----Type-----");
-                            record.setType(contentTable.select("tr").get(i).select("td").text());
+                            currentRecord.setType(contentTable.select("tr").get(i).select("td").text());
                         }
 
                         if (subTableHeader.text().equals("Released")) {
                             System.out.println("-----Released-----");
-                            record.setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                            currentRecord.setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
                                     .split(" ")[2]);
                         }
 
                         if (subTableHeader.text().equals("Recorded")) {
                             System.out.println("-----Recorded-----");
-                            record.setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                            currentRecord.setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
                                     .split(" ")[2]);
                         }
 
@@ -252,14 +257,15 @@ public class RYMParser{
                                     albumGenres.add(genre);
                                 }
                             }
-                            record.setGenres(albumGenres);
+                            currentRecord.setGenres(albumGenres);
                         }
                     }
                 }
-                record.setIssues(parseIssuesInfo(doc, record));
-                record.printIssues();
+                currentRecord.setIssues(parseIssuesInfo(doc, currentRecord));
+                currentRecord.printIssues();
                 parsed = true;
             } else {
+                message.setValue("Unable to parse album " + inputAlbumName);
                 System.out.println("На сайте произошли какие-то изменения. Check this out.");
             }
         } catch (IOException ex) {
@@ -269,19 +275,21 @@ public class RYMParser{
                 System.out.println("count: " + iterateCount);
 
                 if (iterateCount == 0) {
+                    message.setValue("Deep search... " + getInputArtistName());
                     Pattern p = Pattern.compile("The ", Pattern.CASE_INSENSITIVE);
-                    Matcher matcher = p.matcher(getAudioArtistName());
+                    Matcher matcher = p.matcher(getInputArtistName());
                     if (matcher.find()) {
-                        RYMArtistNameLink = validateUrl(getAudioArtistName().toLowerCase().replaceFirst("the ", ""));
+                        RYMArtistNameLink = validateUrl(getInputArtistName().toLowerCase().replaceFirst("the ", ""));
                         System.out.println(matcher.group(0)); //prints /{item}/
                     } else {
-                        RYMArtistNameLink = validateUrl("The " + getAudioArtistName());
+                        RYMArtistNameLink = validateUrl("The " + getInputArtistName());
                     }
-
+                    
                 } else {
-                    RYMArtistNameLink = validateUrl(getAudioArtistName()) + "_f" + iterateCount;
+                    message.setValue("Deep search... " + getInputArtistName() + ". Iteration " + iterateCount);
+                    RYMArtistNameLink = validateUrl(getInputArtistName()) + "_f" + iterateCount;
                 }
-                setCurrentAlbumUrl(initAlbumUrl + RYMArtistNameLink + "/" + validateUrl(getAudioAlbumName()));
+                setCurrentAlbumUrl(rymAlbumUrl + RYMArtistNameLink + "/" + validateUrl(getInputAlbumName()));
                 System.out.println(currentAlbumUrl);
 
                 iterateCount++;
@@ -300,6 +308,7 @@ public class RYMParser{
     }
 
     public ArrayList<Issue> parseIssuesInfo(Document doc, Record record) {
+        message.setValue("Parsing issues..." );
         Element issuesTable = doc.getElementsByClass("issues").first();
         Elements issuesElements = issuesTable.getElementsByClass("issue_info");
 
@@ -314,6 +323,7 @@ public class RYMParser{
             }
 
             for (int i = issueIndex; i < issuesElements.size(); i++) {
+                message.setValue("Parsing issues..." );
                 Issue issue = new Issue();
                 if (!issuesElements.get(i).getElementsByClass("sametitle").isEmpty()) {
                     issue.setLink(issuesElements.get(i).getElementsByClass("sametitle").first().attr("href"));
@@ -414,7 +424,7 @@ public class RYMParser{
         }
 
         if (!url.isEmpty()) {
-            return rymLink + url;
+            return rymUrl + url;
         } else {
             return url;
         }
@@ -423,13 +433,13 @@ public class RYMParser{
     public boolean parseVAInfo() {
         boolean parsed = false;
         try {
-            setCurrentAlbumUrl(initVAUrl + validateUrl(audioAlbumName));
+            setCurrentAlbumUrl(rymVAUrl + validateUrl(inputAlbumName));
 
             Document doc = Jsoup.connect(currentAlbumUrl)
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
 
-            setRecord(new Record());
+            setCurrentRecord(new Record());
 
             Element tracklistTable = doc.getElementsByClass("tracklisting").first();
 
@@ -443,31 +453,31 @@ public class RYMParser{
                     subArtist.setLink(artistElement.attr("href"));
                     subArtists.add(subArtist);
                 }
-                getRecord().setSubArtists(subArtists);
+                currentRecord.setSubArtists(subArtists);
             }
 
             Element contentTable = doc.getElementsByClass("album_info").first();
 
             if (contentTable != null) {
                 System.out.println("-----------------------------------------------------");
-                if (getRecord() == null) {
-                    setRecord(new Record());
+                if (currentRecord == null) {
+                    setCurrentRecord(new Record());
                 }
-                getRecord().setArtist(new Artist("VA"));
-                getRecord().setType("Compilation");
+                currentRecord.setArtist(new Artist("VA"));
+                currentRecord.setType("Compilation");
 
                 for (int i = 0; i < contentTable.select("tr").size(); i++) {
                     Element subTableHeader = contentTable.select("th").get(i);
                     if (subTableHeader != null) {
                         if (subTableHeader.text().equals("Released")) {
                             System.out.println("-----Released-----");
-                            getRecord().setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                            currentRecord.setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
                                     .split(" ")[2]);
                         }
 
                         if (subTableHeader.text().equals("Recorded")) {
                             System.out.println("-----Recorded-----");
-                            getRecord().setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                            currentRecord.setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
                                     .split(" ")[2]);
                         }
 
@@ -483,7 +493,7 @@ public class RYMParser{
                                 genre.setLink(genreElement.attr("href"));
                                 albumGenres.add(genre);
                             }
-                            getRecord().setGenres(albumGenres);
+                            currentRecord.setGenres(albumGenres);
                         }
                     }
                 }
@@ -501,13 +511,14 @@ public class RYMParser{
     public boolean parseArtistDiscography(String name) {
         boolean parsed;
         try {
-            Document doc = Jsoup.connect(initArtistUrl + validateUrl(name))
+            message.setValue("Parsing discography...");
+            Document doc = Jsoup.connect(rymArtistUrl + validateUrl(name))
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
             Element discographyDiv = doc.getElementById("discography");
             Element albumsDiv = discographyDiv.getElementById("disco_type_s");
             System.out.println("-^-^-^-^- ALBUMS -^-^-^-^-");
-            albumRecords = parseArtistRecordInfo(albumsDiv, "Album");
+            lpRecords = parseArtistRecordInfo(albumsDiv, "Album");
             System.out.println("-^-^-^-^- LIVES -^-^-^-^-");
             Element liveAlbumsDiv = discographyDiv.getElementById("disco_type_l");
             liveRecords = parseArtistRecordInfo(liveAlbumsDiv, "Live Album");
@@ -541,10 +552,11 @@ public class RYMParser{
     }
 
     public void parseArtistDiscography(Document doc) {
+        message.setValue("Parsing discography...");
         Element discographyDiv = doc.getElementById("discography");
         Element albumsDiv = discographyDiv.getElementById("disco_type_s");
         System.out.println("-^-^-^-^- ALBUMS -^-^-^-^-");
-        albumRecords = parseArtistRecordInfo(albumsDiv, "Album");
+        lpRecords = parseArtistRecordInfo(albumsDiv, "Album");
         System.out.println("-^-^-^-^- LIVES -^-^-^-^-");
         Element liveAlbumsDiv = discographyDiv.getElementById("disco_type_l");
         liveRecords = parseArtistRecordInfo(liveAlbumsDiv, "Live Album");
@@ -585,7 +597,7 @@ public class RYMParser{
                         Element mainlineElement = discoInfoElement.getElementsByClass("disco_mainline").first();
                         if (mainlineElement != null) {
                             record.setName(mainlineElement.getElementsByClass("album").first().text());
-                            record.setLink(rymLink + mainlineElement.getElementsByClass("album").first().attr("href"));
+                            record.setLink(rymUrl + mainlineElement.getElementsByClass("album").first().attr("href"));
                         }
                         Element sublineElement = discoInfoElement.getElementsByClass("disco_subline").first();
                         if (sublineElement != null) {
@@ -742,22 +754,22 @@ public class RYMParser{
     }
 
     public String getArtistUrl() {
-        return initArtistUrl;
+        return rymArtistUrl;
     }
 
     public String getAlbumUrl() {
-        return initAlbumUrl;
+        return rymAlbumUrl;
     }
 
     public boolean artistLinkExists(String name) throws IOException {
-        Document doc = Jsoup.connect(initArtistUrl + validateUrl(name))
+        Document doc = Jsoup.connect(rymArtistUrl + validateUrl(name))
                 .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                 .timeout(20000).get();
         return doc != null;
     }
 
     public boolean albumLinkExists(String name) throws IOException {
-        Document doc = Jsoup.connect(initAlbumUrl + validateUrl(name))
+        Document doc = Jsoup.connect(rymAlbumUrl + validateUrl(name))
                 .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                 .timeout(20000).get();
         return doc != null;
@@ -1053,20 +1065,15 @@ public class RYMParser{
     }
 
     public void initUrls() {
-        setCurrentAlbumUrl(initAlbumUrl + validateUrl(getAudioArtistName()) + "/" + validateUrl(getAudioAlbumName()));
-        setCurrentArtistUrl(initArtistUrl + validateUrl(getAudioArtistName()));
+        
     }
 
-    public String getRYMArtistName() {
-        return RYMArtistName;
+    public String getRymArtistName() {
+        return rymArtistName;
     }
 
-    public void setLogOutput(LogOutput logOutput) {
-        this.logOutput = logOutput;
-    }
-
-    public ArrayList<Record> getAlbumRecords() {
-        return albumRecords;
+    public ArrayList<Record> getLpRecords() {
+        return lpRecords;
     }
 
     public ArrayList<Record> getLiveRecords() {
@@ -1105,32 +1112,34 @@ public class RYMParser{
         this.currentAlbumUrl = currentAlbumUrl;
     }
 
-    public Artist getArtist() {
-        return artist;
+    public Artist getCurrentArtist() {
+        return currentArtist;
     }
 
-    public String getAudioAlbumName() {
-        return audioAlbumName;
+    public String getInputAlbumName() {
+        return inputAlbumName;
     }
 
-    public void setAudioAlbumName(String audioAlbumName) {
-        this.audioAlbumName = audioAlbumName;
+    public void setInputAlbumNameAndInitUrl(String inputAlbumName) {
+        this.inputAlbumName = inputAlbumName;
+        setCurrentAlbumUrl(rymAlbumUrl + validateUrl(inputAlbumName) + "/" + validateUrl(inputAlbumName));
     }
 
-    public String getAudioArtistName() {
-        return audioArtistName;
+    public String getInputArtistName() {
+        return inputArtistName;
     }
 
-    public void setAudioArtistName(String audioArtistName) {
-        this.audioArtistName = audioArtistName;
+    public void setInputArtistNameAndInitUrl(String inputArtistName) {
+        this.inputArtistName = inputArtistName;
+        setCurrentArtistUrl(rymArtistUrl + validateUrl(inputArtistName));
     }
 
-    public Record getRecord() {
-        return record;
+    public Record getCurrentRecord() {
+        return currentRecord;
     }
 
-    public void setRecord(Record record) {
-        this.record = record;
+    public void setCurrentRecord(Record currentRecord) {
+        this.currentRecord = currentRecord;
     }
 
     public String getCurrentArtistUrl() {
@@ -1139,6 +1148,10 @@ public class RYMParser{
 
     public void setCurrentArtistUrl(String currentArtistUrl) {
         this.currentArtistUrl = currentArtistUrl;
+    }
+
+    public void setMessage(StringProperty message) {
+        this.message = message;
     }
 
 }

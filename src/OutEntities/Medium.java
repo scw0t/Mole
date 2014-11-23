@@ -13,7 +13,7 @@ public class Medium {
     private ObservableList<AudioProperties> audioList;
 
     private SimpleIntegerProperty cdN;
-    private SimpleStringProperty title;
+    private SimpleStringProperty album;
     private SimpleStringProperty artist;
     private SimpleStringProperty year;
     private SimpleStringProperty genres;
@@ -21,7 +21,7 @@ public class Medium {
     public Medium(ObservableList<AudioProperties> audioList) {
         this.audioList = audioList;
         cdN = new SimpleIntegerProperty(this, "cd_num");
-        title = new SimpleStringProperty(this, "title");
+        album = new SimpleStringProperty(this, "album");
         artist = new SimpleStringProperty(this, "artist");
         year = new SimpleStringProperty(this, "year");
         genres = new SimpleStringProperty(this, "genres");
@@ -52,7 +52,7 @@ public class Medium {
         }
 
         if (years.size() == 1 && !years.first().equals("xxxx")) {
-            year.set(years.first());
+            year.setValue(years.first());
         }
 
         if (albums.size() > 1) {
@@ -63,9 +63,9 @@ public class Medium {
                     albStr += " + ";
                 }
             }
-            title.set(albStr);
+            album.set(albStr);
         } else {
-            title.set(albums.first());
+            album.set(albums.first());
         }
 
     }
@@ -87,20 +87,20 @@ public class Medium {
         this.audioList = audioList;
     }
 
-    public int getCDn() {
+    public int getCdN() {
         return cdN.getValue();
     }
 
-    public void setCDn(int CDn) {
-        this.cdN.setValue(CDn);
+    public void setCdN(int cdN) {
+        this.cdN.setValue(cdN);
     }
 
-    public String getTitle() {
-        return title.getValue();
+    public String getAlbum() {
+        return album.getValue();
     }
 
-    public void setTitle(String title) {
-        this.title.setValue(title);
+    public void setAlbum(String album) {
+        this.album.setValue(album);
     }
 
     public String getArtist() {

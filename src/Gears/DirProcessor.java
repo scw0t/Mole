@@ -43,18 +43,17 @@ public class DirProcessor {
     }
 
     public void go() {
-        Platform.runLater(new Runnable() {
-            @Override
-            public void run() {
-                ProgressTask task = new ProgressTask();
-                dialog = new TaskDialog();
-                dialog.show();
-                dialog.getPathLabel1().textProperty().bind(task.messageProperty());
-                dialog.getProgressBar().progressProperty().bind(task.progressProperty());
-                Controller.tableView.itemsProperty().bind(task.valueProperty());
-                Controller.tableView.getSelectionModel().select(0);
-                new Thread(task).start();
-            }
+        Platform.runLater(() -> {
+            ProgressTask task = new ProgressTask();
+            dialog = new TaskDialog();
+            dialog.show();
+            dialog.getPathLabel1().textProperty().bind(task.messageProperty());
+            dialog.getProgressBar().progressProperty().bind(task.progressProperty());
+            Controller.tableView.itemsProperty().bind(task.valueProperty());
+            Controller.tableView.getSelectionModel().clearSelection();
+            //Controller.tableView.getSelectionModel().select(0);
+            
+            new Thread(task).start();
         });
     }
 
@@ -154,8 +153,6 @@ public class DirProcessor {
                     clusters.add(new ItemModel(itemProps));
                 }
             }
-
-            System.out.println(Thread.currentThread());
 
             return clusters;
         }

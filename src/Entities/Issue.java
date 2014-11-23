@@ -16,9 +16,9 @@ public class Issue {
     public Issue() {
     }
     
-    public void printAll(){
+    public void printIssuesInfo(){
         System.out.println(issueTitle + " | " + issueAttributes);
-        System.out.println(issueYear + " | " + issueFormats + " | " + issueLabel + " | " + issueCountries);
+        System.out.println(issueYear + " | " + issueFormats + " | " + issueLabel + "/" + catNumber + " | " + issueCountries);
     }
 
     public boolean isIsPrimary() {

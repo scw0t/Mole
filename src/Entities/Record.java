@@ -82,7 +82,7 @@ public class Record {
     }
 
     public void printRecordContent() {
-        System.out.println("------------------------------------");
+        System.out.println("Record content------------------------------------");
         System.out.println(getYearRecorded() + " - " + name + " [" + type + "]");
         System.out.println(link);
 
@@ -97,7 +97,7 @@ public class Record {
     
     public void printIssues(){
         for (Issue is : issues) {
-            is.printAll();
+            is.printIssuesInfo();
         }
     }
 

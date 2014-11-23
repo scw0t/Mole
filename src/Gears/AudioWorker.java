@@ -73,7 +73,7 @@ public class AudioWorker {
     private String attributes;
     private boolean processed = false;
 
-    private RYMParser parser;
+    private RYMParser rymp;
 
     private File[] folderContent;
 
@@ -100,70 +100,69 @@ public class AudioWorker {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
         va = isVA();
 
-        parser = new RYMParser();
-        parser.setLogOutput(logOutput);
+        rymp = new RYMParser();
 
         if (va) {
-            parser.setAudioAlbumName(getAlbumName());
-            if (parser.parseVAInfo()) {
-                recordGenres = parser.getRecord().firstThreeGenresToString();
+            rymp.setInputAlbumNameAndInitUrl(getAlbumName());
+            if (rymp.parseVAInfo()) {
+                recordGenres = rymp.getCurrentRecord().firstThreeGenresToString();
                 editTracks();
             }
 
         } else {
-            parser.setAudioArtistName(getArtistName());
-            parser.setAudioAlbumName(getAlbumName());
-            parser.initUrls();
+            rymp.setInputArtistNameAndInitUrl(getArtistName());
+            rymp.setInputAlbumNameAndInitUrl(getAlbumName());
+            rymp.initUrls();
 
-            if (parser.parseAlbumInfo()) {
-                parser.parseArtistInfo(parser.getRYMArtistName());
+            if (rymp.parseAlbumInfo()) {
+                rymp.parseArtistInfo(rymp.getRymArtistName());
 
             } else {
-                if (parser.parseArtistInfo(parser.getAudioArtistName())) {
+                if (rymp.parseArtistInfo(rymp.getInputArtistName())) {
                     try {
-                        checkDiscography(parser);
+                        checkDiscography(rymp);
                     } catch (NullPointerException e) {
-                        System.out.println(parser.getSingleRecords().getClass().getName() + "- Null");
+                        System.out.println(rymp.getSingleRecords().getClass().getName() + "- Null");
                     }
                 }
             }
 
-            if (parser.getArtist() != null) {
-                if (!parser.getArtist().getName().isEmpty()) {
-                    artist = parser.getArtist().getName();
+            if (rymp.getCurrentArtist() != null) {
+                if (!rymp.getCurrentArtist().getName().isEmpty()) {
+                    artist = rymp.getCurrentArtist().getName();
                 }
 
-                if (!parser.getArtist().getGenres().isEmpty()) {
-                    artistGenres = parser.getArtist().firstThreeGenresToString();
-                } else if (parser.getRecord() != null && !parser.getRecord().getGenres().isEmpty()) {
-                    artistGenres = parser.getRecord().firstThreeGenresToString();
+                if (!rymp.getCurrentArtist().getGenres().isEmpty()) {
+                    artistGenres = rymp.getCurrentArtist().firstThreeGenresToString();
+                } else if (rymp.getCurrentRecord() != null && !rymp.getCurrentRecord().getGenres().isEmpty()) {
+                    artistGenres = rymp.getCurrentRecord().firstThreeGenresToString();
                 }
 
-                if (!parser.getArtist().getCountry().isEmpty()) {
-                    country = parser.getArtist().getCountry();
+                if (!rymp.getCurrentArtist().getCountry().isEmpty()) {
+                    country = rymp.getCurrentArtist().getCountry();
                 }
             } else {
                 System.out.println("Исполнитель не найден");
             }
 
-            if (parser.getRecord() != null) {
-                if (!parser.getRecord().getGenres().isEmpty()) {
-                    recordGenres = parser.getRecord().allGenresToString();
-                } else if (parser.getArtist() != null && !parser.getArtist().getGenres().isEmpty()) {
-                    recordGenres = parser.getArtist().allGenresToString();
+            if (rymp.getCurrentRecord() != null) {
+                if (!rymp.getCurrentRecord().getGenres().isEmpty()) {
+                    recordGenres = rymp.getCurrentRecord().allGenresToString();
+                } else if (rymp.getCurrentArtist() != null && !rymp.getCurrentArtist().getGenres().isEmpty()) {
+                    recordGenres = rymp.getCurrentArtist().allGenresToString();
                 }
 
-                if (!parser.getRecord().getYearRecorded().isEmpty()) {
-                    albumYear = parser.getRecord().getYearRecorded();
-                } else if (!parser.getRecord().getYearReleased().isEmpty()) {
-                    albumYear = parser.getRecord().getYearReleased();
+                if (!rymp.getCurrentRecord().getYearRecorded().isEmpty()) {
+                    albumYear = rymp.getCurrentRecord().getYearRecorded();
+                } else if (!rymp.getCurrentRecord().getYearReleased().isEmpty()) {
+                    albumYear = rymp.getCurrentRecord().getYearReleased();
                 }
 
-                if (!parser.getRecord().getType().isEmpty()) {
-                    albumType = parser.getRecord().getType();
+                if (!rymp.getCurrentRecord().getType().isEmpty()) {
+                    albumType = rymp.getCurrentRecord().getType();
                 }
 
-                if (!parser.getRecord().getIssues().isEmpty()) {
+                if (!rymp.getCurrentRecord().getIssues().isEmpty()) {
                     Platform.runLater(new Runnable() {
 
                         @Override
@@ -175,7 +174,7 @@ public class AudioWorker {
                                     getCatDialog().initGUI();
                                 }
 
-                                getCatDialog().setContent(parser.getRecord().getIssues());
+                                getCatDialog().setContent(rymp.getCurrentRecord().getIssues());
 
                                 /*getCatDialog().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
                                     @Override
@@ -358,8 +357,8 @@ public class AudioWorker {
         int recordQuantityMatches = 0;
 
         // Проверяем альбомы
-        for (Record record : parser.getAlbumRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
+        for (Record record : parser.getLpRecords()) {
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
@@ -367,8 +366,8 @@ public class AudioWorker {
 
         // Проверяем live albums
         for (Record record : parser.getLiveRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
@@ -376,16 +375,16 @@ public class AudioWorker {
 
         // Проверяем compilations
         for (Record record : parser.getCompRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
         }
 
         for (Record record : parser.getBootlegRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
@@ -393,8 +392,8 @@ public class AudioWorker {
 
         // Проверяем va
         for (Record record : parser.getVaRecords()) {
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
@@ -405,16 +404,16 @@ public class AudioWorker {
 
             if (record.getName().contains(" / ")) {
                 for (String singlePart : record.getName().split(" / ")) {
-                    if (singlePart.equals(parser.getAudioAlbumName())) {
+                    if (singlePart.equals(parser.getInputAlbumName())) {
                         recordQuantityMatches++;
                         System.out.println(singlePart);
                     }
                 }
             }
 
-            System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+            System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }
@@ -428,15 +427,15 @@ public class AudioWorker {
             // скорее всего перед нами сингл или EP
             if (record.getName().contains(" / ")) {
                 for (String singlePart : record.getName().split(" / ")) {
-                    if (singlePart.equals(parser.getAudioAlbumName())) {
+                    if (singlePart.equals(parser.getInputAlbumName())) {
                         recordQuantityMatches++;
                         System.out.println(singlePart);
                     }
                 }
             }
 
-            if (StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getAudioAlbumName(), record.getName()));
+            if (StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()) <= 2) {
+                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(parser.getInputAlbumName(), record.getName()));
                 parser.setCurrentAlbumUrl(record.getLink());
                 parser.parseAlbumInfo();
             }

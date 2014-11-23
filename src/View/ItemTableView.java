@@ -13,15 +13,20 @@ public class ItemTableView<ItemModel> extends TableView<ItemModel>{
 
     private final TableColumn<ItemModel, Boolean> checkCol;
     private final TableColumn<ItemModel, String> nameCol;
+    private final TableColumn<ItemModel, String> progressCol;
 
     public ItemTableView() throws FileNotFoundException {
-        checkCol = new TableColumn<ItemModel, Boolean>("");
-        nameCol = new TableColumn<ItemModel, String>("Name");
+        checkCol = new TableColumn<>("");
+        nameCol = new TableColumn<>("Name");
+        progressCol = new TableColumn<>("");
         checkCol.setGraphic(new ImageView(new Image(new FileInputStream("eye.png"))));
         checkCol.setSortable(false);
+        progressCol.setGraphic(new ImageView(new Image(new FileInputStream("progress.png"))));
+        progressCol.setSortable(false);
         
         checkCol.prefWidthProperty().bind(widthProperty().multiply(0.07));
-        nameCol.prefWidthProperty().bind(widthProperty().multiply(0.8));
+        nameCol.prefWidthProperty().bind(widthProperty().multiply(0.86));
+        progressCol.prefWidthProperty().bind(widthProperty().multiply(0.07));
         /*checkCol.addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
@@ -29,13 +34,15 @@ public class ItemTableView<ItemModel> extends TableView<ItemModel>{
             }
         });*/
 
-        getColumns().addAll(checkCol, nameCol);
+        getColumns().addAll(checkCol, nameCol, progressCol);
 
-        checkCol.setCellValueFactory(new PropertyValueFactory<ItemModel, Boolean>("checked"));
-        nameCol.setCellValueFactory(new PropertyValueFactory<ItemModel, String>("name"));
+        checkCol.setCellValueFactory(new PropertyValueFactory<>("checked"));
+        nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
+        progressCol.setCellValueFactory(new PropertyValueFactory<>("progress"));
 
         checkCol.setCellFactory(CheckBoxTableCell.forTableColumn(checkCol));
         checkCol.setEditable(true);
+        progressCol.setEditable(false);
         setEditable(true);
         setStyle("-fx-focus-color: transparent;");
 

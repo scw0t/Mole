@@ -248,7 +248,7 @@ public class DirectoryTreeView extends Stage {
                 @Override
                 public void run() {
                     DirectoryTreeView.this.close();
-                    
+
                     //Получаем список выбранных папок
                     if (!Controller.initialDirectoryList.isEmpty()) {
                         Controller.initialDirectoryList.clear();
@@ -263,6 +263,9 @@ public class DirectoryTreeView extends Stage {
 
                     DirProcessor dirProcessor = new DirProcessor();
                     dirProcessor.go();
+                    
+                    /*Controller.tableView.getSelectionModel().select(0);
+                    System.out.println(Controller.tableView.getItems().size());*/
                 }
             });
             return null;
