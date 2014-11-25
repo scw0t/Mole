@@ -1,14 +1,18 @@
 package OutEntities;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 
 public class Medium {
+    
+    private final ItemProperties currentItem;
 
     private ObservableList<AudioProperties> audioList;
 
@@ -17,14 +21,19 @@ public class Medium {
     private SimpleStringProperty artist;
     private SimpleStringProperty year;
     private SimpleStringProperty genres;
+    private SimpleBooleanProperty hasArtwork;
+    private HashMap<String, String> yearAlbum;
 
-    public Medium(ObservableList<AudioProperties> audioList) {
-        this.audioList = audioList;
+    public Medium(ItemProperties currentItem) {
+        this.audioList = currentItem.getListOfAudioFiles();
+        this.currentItem = currentItem;
         cdN = new SimpleIntegerProperty(this, "cd_num");
         album = new SimpleStringProperty(this, "album");
         artist = new SimpleStringProperty(this, "artist");
         year = new SimpleStringProperty(this, "year");
         genres = new SimpleStringProperty(this, "genres");
+        hasArtwork = new SimpleBooleanProperty(this, "hasArtwork");
+        yearAlbum = new HashMap<>();
     }
 
     public void look() {
@@ -32,7 +41,7 @@ public class Medium {
         SortedSet<String> albums = new TreeSet<>();
         SortedSet<String> genres = new TreeSet<>();
         SortedSet<String> years = new TreeSet<>();
-
+        
         for (AudioProperties audio : audioList) {
             artists.add(audio.getArtistTitle());
             albums.add(audio.getAlbumTitle());
@@ -43,6 +52,8 @@ public class Medium {
             if (audio.getCdN() != 0) {
                 cdN.set(audio.getCdN());
             }
+            
+            yearAlbum.put(audio.getAlbumTitle(), audio.getYear());
         }
 
         if (artists.size() > 1) {
@@ -56,17 +67,19 @@ public class Medium {
         }
 
         if (albums.size() > 1) {
-            String albStr = "";
+            /*String albStr = "";
             for (int i = 0; i < albums.size(); i++) {
                 albStr += get(albums, i);
                 if (i < albums.size() - 1) {
                     albStr += " + ";
                 }
             }
-            album.set(albStr);
+            album.set(albStr);*/
         } else {
             album.set(albums.first());
         }
+        
+        
 
     }
 
@@ -125,5 +138,13 @@ public class Medium {
 
     public void setGenres(String genres) {
         this.genres.setValue(genres);
+    }
+
+    public ItemProperties getCurrentItem() {
+        return currentItem;
+    }
+
+    public HashMap<String, String> getYearAlbum() {
+        return yearAlbum;
     }
 }

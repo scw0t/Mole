@@ -43,6 +43,8 @@ public final class ItemProperties {
     private final SimpleIntegerProperty cdNAttribute; //наличие нескольких дисков
     private final SimpleBooleanProperty imageAttribute; //наличие картинок
     private final SimpleBooleanProperty vaAttribute; //признак сборника
+    private final SimpleBooleanProperty innerDirectoryAttribute; //наличие поддиректории с изображениями
+    private ObservableList<File> listOfInnerDirectories;
 
     //принимает директорию из parsedDirList
     public ItemProperties(File dir) {
@@ -56,11 +58,14 @@ public final class ItemProperties {
         imageAttribute = new SimpleBooleanProperty(this, "imageAttribute");
         vaAttribute = new SimpleBooleanProperty(this, "vaAttribute");
         vaAttribute.setValue(Boolean.FALSE);
+        innerDirectoryAttribute = new SimpleBooleanProperty(this, "innerDirectoryAttribute");
+        innerDirectoryAttribute.setValue(Boolean.FALSE);
 
         mediumList = FXCollections.observableArrayList();
         listOfAudioFiles = FXCollections.observableArrayList();
         listOfImageFiles = FXCollections.observableArrayList();
         listOfOtherFiles = FXCollections.observableArrayList();
+        listOfInnerDirectories = FXCollections.observableArrayList();
 
         directoryName.setValue(dir.getName());
 
@@ -71,7 +76,6 @@ public final class ItemProperties {
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
             System.out.println("Ошибка при добавлении атрибутов");
         }
-
     }
 
     // сканирование директории
@@ -113,6 +117,8 @@ public final class ItemProperties {
 
         removeUselessChilds();
 
+        attachCoversDirectory();
+
         //?
         /*for (ItemProperties child : childList) {
          child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
@@ -141,7 +147,7 @@ public final class ItemProperties {
             }
 
             if (!fp.listOfAudioFiles.isEmpty()) {
-                Medium medium = new Medium(fp.listOfAudioFiles);
+                Medium medium = new Medium(fp);
                 medium.setCdN(cdN);
                 medium.look();
                 if (medium.getArtist().equals("VA")) {
@@ -192,6 +198,23 @@ public final class ItemProperties {
             System.out.println("--Others:");
             for (File file : listOfOtherFiles) {
                 System.out.println(file.getAbsolutePath());
+            }
+        }
+    }
+
+    private void attachCoversDirectory() {
+        if (!listOfAudioFiles.isEmpty()) {
+            LinkedList<File> directories = (LinkedList) FileUtils.listFilesAndDirs(getListOfAudioFiles().get(0).getFile().getParentFile(),
+                    new NotFileFilter(TrueFileFilter.INSTANCE),
+                    DirectoryFileFilter.DIRECTORY);
+            directories.removeFirst();
+            for (File d : directories) {
+                if (DirProcessor.hasImages(d)) {
+                    listOfInnerDirectories.add(d);
+                }
+            }
+            if (!listOfInnerDirectories.isEmpty()) {
+                innerDirectoryAttribute.setValue(Boolean.TRUE);
             }
         }
     }
@@ -288,6 +311,10 @@ public final class ItemProperties {
 
     public ObservableList<Medium> getMediumList() {
         return mediumList;
+    }
+
+    public boolean hasInnerDirectoryAttribute() {
+        return innerDirectoryAttribute.getValue();
     }
 
 }

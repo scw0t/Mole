@@ -6,7 +6,7 @@ import Entities.Record;
 import Gears.DirProcessor;
 import Gears.FinalProcess;
 import Gears.LogOutput;
-import Gears.TagProcessor;
+import Gears.ParseFactory;
 import OutEntities.AudioProperties;
 import OutEntities.ItemProperties;
 import OutEntities.IncomingDirectory;
@@ -329,21 +329,21 @@ public class Controller extends BorderPane {
                 if (!tableView.getItems().isEmpty()) {
                     for (ItemModel item : tableView.getItems()) {
                         if (item.isChecked()) {
-                            TagProcessor tagProcessor = new TagProcessor(item.getItemProperty());
+                            ParseFactory parseFactory = new ParseFactory(item.getItemProperty());
                             FinalProcess finalProcess = new FinalProcess(item.getItemProperty());
-                            finalProcess.setRymp(tagProcessor.getRymp());
+                            finalProcess.setRymp(parseFactory.getRymp());
 
-                            ParserTask parserTask = new ParserTask();
-                            parserTask.setTagProcessor(tagProcessor);
+                            ParseTask parseTask = new ParseTask();
+                            parseTask.setParseFactory(parseFactory);
 
                             CListView cListView = new CListView();
                             cListView.setFinalProcess(finalProcess);
-                            cListView.getcTable().itemsProperty().bind(parserTask.valueProperty());
-                            cListView.getIndicator().progressProperty().bind(parserTask.progressProperty());
-                            cListView.getStateLabel().textProperty().bind(parserTask.messageProperty());
+                            cListView.getcTable().itemsProperty().bind(parseTask.valueProperty());
+                            cListView.getIndicator().progressProperty().bind(parseTask.progressProperty());
+                            cListView.getStateLabel().textProperty().bind(parseTask.messageProperty());
 
                             //runAndWait(parserTask);
-                            new Thread(parserTask).start();
+                            new Thread(parseTask).start();
                             cListView.showAndWait();
                         }
                     }
@@ -367,21 +367,21 @@ public class Controller extends BorderPane {
         }
     }
 
-    class ParserTask extends Task<ObservableList<CModel>> {
+    class ParseTask extends Task<ObservableList<CModel>> {
 
-        private TagProcessor tagProcessor;
+        private ParseFactory parseFactory;
 
         @Override
         protected ObservableList<CModel> call() throws Exception {
             ObservableList<CModel> resultList = FXCollections.observableArrayList();
 
-            tagProcessor.getMessageProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
+            parseFactory.getMessageProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
                 updateMessage(newValue);
             });
 
             try {
-                tagProcessor.launch();
-                if (tagProcessor.getIssueList().isEmpty()) {
+                parseFactory.launch();
+                if (parseFactory.getIssueList().isEmpty()) {
                     updateMessage("Nothing founded");
                 } else {
                     updateMessage("Searching complete");
@@ -393,15 +393,15 @@ public class Controller extends BorderPane {
                 updateProgress(1.0f, 1.0f);
             }
 
-            for (Issue issue : tagProcessor.getIssueList()) {
+            for (Issue issue : parseFactory.getIssueList()) {
                 resultList.add(new CModel(issue));
             }
 
             return resultList;
         }
 
-        public void setTagProcessor(TagProcessor tagProcessor) {
-            this.tagProcessor = tagProcessor;
+        public void setParseFactory(ParseFactory parseFactory) {
+            this.parseFactory = parseFactory;
         }
 
     }

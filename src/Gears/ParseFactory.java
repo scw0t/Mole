@@ -20,7 +20,7 @@ import org.jaudiotagger.tag.FieldDataInvalidException;
 import org.jaudiotagger.tag.KeyNotFoundException;
 import org.jaudiotagger.tag.TagException;
 
-public class TagProcessor {
+public class ParseFactory {
 
     private ItemProperties itemsProps;
     private final RYMParser rymp;
@@ -28,7 +28,7 @@ public class TagProcessor {
     private ObservableList<Issue> issueList;
     private StringProperty message;
 
-    public TagProcessor(ItemProperties itemsProps) {
+    public ParseFactory(ItemProperties itemsProps) {
         this.itemsProps = itemsProps;
         message = new SimpleStringProperty();
         issueList = FXCollections.observableArrayList();
@@ -72,7 +72,7 @@ public class TagProcessor {
                         TagException |
                         ReadOnlyFileException |
                         InvalidAudioFrameException ex) {
-                    Logger.getLogger(TagProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(ParseFactory.class.getName()).log(Level.SEVERE, null, ex);
                 }
             } else {
                 
