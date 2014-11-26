@@ -9,7 +9,6 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.lang.System.out;
 import java.util.LinkedList;
-import java.util.logging.Logger;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -100,6 +99,8 @@ public class ItemProperties {
         testLists();
 
         addChilds();
+        
+        System.out.println("------------------");
 
     }
 
@@ -122,6 +123,7 @@ public class ItemProperties {
             ocd.fillListsOfInnerFiles(ocd);
             childList.add(ocd);
         }
+        setCdN(cdN);
 
         removeUselessChilds();
 
@@ -160,8 +162,10 @@ public class ItemProperties {
 
             if (!fp.listOfAudioFiles.isEmpty()) {
                 Medium medium = new Medium(fp);
-                medium.setCdN(cdN);
                 medium.look();
+                if (medium.getCdN() == 0 && cdN != 0) {
+                    medium.setCdN(cdN);
+                }
                 if (medium.getArtist().equals("VA")) {
                     setVaAttribute(true);
                 }
@@ -409,5 +413,9 @@ public class ItemProperties {
      */
     public boolean hasInnerDirectoryAttribute() {
         return innerDirectoryAttribute.getValue();
+    }
+
+    public void setCdN(int cdN) {
+        this.cdN = cdN;
     }
 }

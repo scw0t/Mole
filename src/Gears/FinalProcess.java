@@ -4,6 +4,7 @@ import Entities.Issue;
 import OutEntities.AudioProperties;
 import OutEntities.ItemProperties;
 import OutEntities.Medium;
+import View.Controller;
 import java.io.File;
 import java.io.IOException;
 import static java.lang.Integer.valueOf;
@@ -11,7 +12,9 @@ import static java.lang.System.out;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.apache.commons.io.FileUtils;
 import static org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR;
 import static org.apache.commons.io.FilenameUtils.getExtension;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
@@ -38,13 +41,9 @@ import org.jaudiotagger.tag.TagException;
 import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.images.StandardArtwork;
 
-/**
- *
- * @author p51_evseevvy
- */
 public class FinalProcess {
 
-    private final ItemProperties itemProperties;
+    private final ItemProperties rootItem;
     private Issue selectedIssue;
     private RYMParser rymp;
     private final Artwork artwork;
@@ -58,22 +57,48 @@ public class FinalProcess {
 
     /**
      *
-     * @param itemProperties
+     * @param rootItem
      */
-    public FinalProcess(ItemProperties itemProperties) {
-        this.itemProperties = itemProperties;
+    public FinalProcess(ItemProperties rootItem) {
+        this.rootItem = rootItem;
         artwork = new StandardArtwork();
     }
 
     /**
      *
+     * @throws java.io.IOException
+     * @throws org.jaudiotagger.tag.TagException
+     * @throws org.jaudiotagger.audio.exceptions.InvalidAudioFrameException
+     * @throws org.jaudiotagger.tag.FieldDataInvalidException
+     * @throws org.jaudiotagger.audio.exceptions.ReadOnlyFileException
+     * @throws org.jaudiotagger.audio.exceptions.CannotReadException
      */
-    public void launch() {
+    public void launch() throws KeyNotFoundException, IOException, TagException, FieldDataInvalidException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         fillOutputValues();
 
         try {
-            fixTracklistAndCDnAndArtwork();
+            if (rootItem.getChildList().isEmpty()) {
+                for (Medium medium : rootItem.getMediumList()) {
+                    fixTags(medium);
+                }
+            } else {
+                for (ItemProperties child : rootItem.getChildList()) {
+                    for (Medium medium : child.getMediumList()) {
+                        fixTags(medium);
+                    }
+                }
+            }
+
         } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+            System.out.println("Error occured while fixing tags process");
+        }
+
+        if (rootItem.getChildList().isEmpty()) {
+            moveFactory(rootItem);
+        } else {
+            for (ItemProperties child : rootItem.getChildList()) {
+                moveFactory(child);
+            }
         }
 
         out.println(outputArtistValue);
@@ -82,121 +107,118 @@ public class FinalProcess {
         out.println(outputArtistGenresValue);
         out.println(outputRecordGenresValue);
     }
-    
-    //ПЕРЕДЕЛАТЬ для ChildList, используя listOfAudio, listOfImages
 
-    //
-    private void fixTracklistAndCDnAndArtwork() throws KeyNotFoundException,
+    private void fixTags(Medium medium) throws KeyNotFoundException,
             FieldDataInvalidException,
             IOException,
             TagException,
             ReadOnlyFileException,
             InvalidAudioFrameException,
             CannotReadException {
-        for (Medium medium : itemProperties.getMediumList()) {
 
-            int trackCount = 1;
-            String trackString = "";
-            boolean artworkInFolderExists = artworkInFolderExists(medium);
+        int trackCount = 1;
+        String trackString = "";
+        boolean artworkInFolderExists = artworkInFolderExists(medium);
 
-            for (AudioProperties audio : medium.getListOfAudioFiles()) {
+        for (AudioProperties audio : medium.getAudioList()) {
 
-                MP3File file = audio.getAudioFile();
+            MP3File file = audio.getAudioFile();
 
-                //Запись тега TRACK
-                if (trackCount < 10) {
-                    trackString = "0" + Integer.toString(trackCount);
-                } else {
-                    trackString = Integer.toString(trackCount);
-                }
+            //Запись тега TRACK
+            if (trackCount < 10) {
+                trackString = "0" + Integer.toString(trackCount);
+            } else {
+                trackString = Integer.toString(trackCount);
+            }
 
-                file.getTag().setField(TRACK, trackString);
+            file.getTag().setField(TRACK, trackString);
 
-                //Запись тега TRACK_TOTAL
-                file.getTag().setField(TRACK_TOTAL, Integer.toString(medium.getListOfAudioFiles().size()));
+            //Запись тега TRACK_TOTAL
+            file.getTag().setField(TRACK_TOTAL, Integer.toString(medium.getAudioList().size()));
 
-                //Запись тега DISC_NO
-                if (file.getTag().getFirst(DISC_NO).isEmpty()) {
-                    if (medium.getCdN() > 0) {
-                        file.getTag().setField(DISC_NO, Integer.toString(audio.getCdN()));
+            //Запись тега DISC_NO
+            if (file.getTag().getFirst(DISC_NO).isEmpty()) {
+                if (medium.getCdN() > 0) {
+                    if (audio.getCdN() == 0 && medium.getCdN() != 0) {
+                        file.getTag().setField(DISC_NO, Integer.toString(medium.getCdN()));
                     }
                 }
+            }
 
-                //Запись тега ARTIST
-                if (!outputArtistValue.isEmpty() && !file.getTag().getFirst(ARTIST).equals(outputArtistValue)) {
-                    file.getTag().setField(ARTIST, outputArtistValue);
-                }
+            //Запись тега ARTIST
+            if (!outputArtistValue.isEmpty() && !file.getTag().getFirst(ARTIST).equals(outputArtistValue)) {
+                file.getTag().setField(ARTIST, outputArtistValue);
+            }
 
-                //Запись тега ARTIST_SORT
-                if (outputArtistValue.startsWith("The ")) {
-                    file.getTag().setField(ARTIST_SORT, outputArtistValue.replaceFirst("The ", "") + ", The");
-                } else {
-                    file.getTag().setField(ARTIST_SORT, outputArtistValue);
-                }
+            //Запись тега ARTIST_SORT
+            if (outputArtistValue.startsWith("The ")) {
+                file.getTag().setField(ARTIST_SORT, outputArtistValue.replaceFirst("The ", "") + ", The");
+            } else {
+                file.getTag().setField(ARTIST_SORT, outputArtistValue);
+            }
 
-                //Запись тега YEAR. Если в поле YEAR уже есть значение, то сохраняется наименьшее
-                if (!outputAlbumYearValue.isEmpty() && !file.getTag().getFirst(YEAR).equals(outputAlbumYearValue)) {
-                    if (!file.getTag().getFirst(YEAR).isEmpty()) {
-                        if (valueOf(outputAlbumYearValue) < valueOf(file.getTag().getFirst(YEAR))) {
-                            file.getTag().setField(YEAR, outputAlbumYearValue);
-                        }
-                    } else {
+            //Запись тега YEAR. Если в поле YEAR уже есть значение, то сохраняется наименьшее
+            if (!outputAlbumYearValue.isEmpty() && !file.getTag().getFirst(YEAR).equals(outputAlbumYearValue)) {
+                if (!file.getTag().getFirst(YEAR).isEmpty()) {
+                    if (valueOf(outputAlbumYearValue) < valueOf(file.getTag().getFirst(YEAR))) {
                         file.getTag().setField(YEAR, outputAlbumYearValue);
                     }
+                } else {
+                    file.getTag().setField(YEAR, outputAlbumYearValue);
+                }
+            }
+
+            //Запись тега GENRE
+            if (!outputRecordGenresValue.isEmpty()) {
+                file.getTag().setField(GENRE, outputRecordGenresValue);
+            }
+
+            //Запись тега COUNTRY
+            if (!outputCountryValue.isEmpty()) {
+                file.getTag().setField(COUNTRY, outputCountryValue);
+            }
+
+            //Если выбрано издание
+            if (selectedIssue != null) {
+                //Запись тега ALBUM
+                if (selectedIssue.getIssueTitle() != null) {
+                    file.getTag().setField(ALBUM, selectedIssue.getIssueTitle());
                 }
 
-                //Запись тега GENRE
-                if (!outputRecordGenresValue.isEmpty()) {
-                    file.getTag().setField(GENRE, outputRecordGenresValue);
-                }
-
-                //Запись тега COUNTRY
-                if (!outputCountryValue.isEmpty()) {
-                    file.getTag().setField(COUNTRY, outputCountryValue);
-                }
-
-                //Если выбрано издание
-                if (selectedIssue != null) {
-                    //Запись тега ALBUM
-                    if (selectedIssue.getIssueTitle() != null) {
-                        file.getTag().setField(ALBUM, selectedIssue.getIssueTitle());
-                    }
-
-                    //Запись тега RECORD_LABEL
-                    if (selectedIssue.getIssueLabel() != null) {
-                        if (!selectedIssue.getIssueLabel().equals("Unknown")) {
-                            file.getTag().setField(RECORD_LABEL, selectedIssue.getIssueLabel());
-                        }
-                    }
-
-                    //Запись тега CATALOG_NO
-                    if (selectedIssue.getCatNumber() != null) {
-                        if (!selectedIssue.getCatNumber().isEmpty()) {
-                            file.getTag().setField(CATALOG_NO, selectedIssue.getCatNumber());
-                        }
+                //Запись тега RECORD_LABEL
+                if (selectedIssue.getIssueLabel() != null) {
+                    if (!selectedIssue.getIssueLabel().equals("Unknown")) {
+                        file.getTag().setField(RECORD_LABEL, selectedIssue.getIssueLabel());
                     }
                 }
 
-                //Запись artwork
-                if (artworkInFolderExists && !audioArtworkExists(file)) {
-                    file.getTag().setField(artwork);
+                //Запись тега CATALOG_NO
+                if (selectedIssue.getCatNumber() != null) {
+                    if (!selectedIssue.getCatNumber().isEmpty()) {
+                        file.getTag().setField(CATALOG_NO, selectedIssue.getCatNumber());
+                    }
                 }
+            }
 
-                //Запись тега COMMENT
-                file.getTag().setField(COMMENT, "(c) Scwot");
+            //Запись artwork
+            if (artworkInFolderExists && !audioArtworkExists(file)) {
+                file.getTag().setField(artwork);
+            }
 
-                //Применение изменений
-                try {
-                    file.commit();
-                } catch (CannotWriteException e) {
-                } finally {
-                    trackCount++;
-                }
+            //Запись тега COMMENT
+            file.getTag().setField(COMMENT, "(c) Scwot");
+
+            //Применение изменений
+            try {
+                file.commit();
+            } catch (CannotWriteException e) {
+            } finally {
+                trackCount++;
             }
         }
     }
 
-    private void renameAudio() throws KeyNotFoundException,
+    private void renameAudio(Medium medium) throws KeyNotFoundException,
             FieldDataInvalidException,
             IOException,
             TagException,
@@ -205,51 +227,57 @@ public class FinalProcess {
             CannotReadException {
 
         File newFile;
+        ObservableList<AudioProperties> renamedAudioList = FXCollections.observableArrayList();
 
-        for (Medium medium : itemProperties.getMediumList()) {
-            for (AudioProperties audio : medium.getListOfAudioFiles()) {
-                MP3File oldFile = audio.getAudioFile();
+        for (int i = 0; i < medium.getAudioList().size(); i++) {
+            MP3File oldFile = medium.getAudioList().get(i).getAudioFile();
 
-                if (!oldFile.getTag().getFirst(TRACK).isEmpty()
-                        && !oldFile.getTag().getFirst(TITLE).isEmpty()) {
-                    if (itemProperties.hasVaAttribute()) {
-                        newFile = new File(oldFile.getFile().getParentFile()
-                                .getAbsolutePath()
-                                + "\\"
-                                + oldFile.getTag().getFirst(TRACK)
-                                + " - "
-                                + validateName(oldFile.getTag().getFirst(ARTIST))
-                                + " - "
-                                + validateName(oldFile.getTag().getFirst(TITLE))
-                                + EXTENSION_SEPARATOR
-                                + getExtension(oldFile.getFile().getName()));
-                    } else {
-                        newFile = new File(oldFile.getFile().getParentFile()
-                                .getAbsolutePath()
-                                + "\\"
-                                + oldFile.getTag().getFirst(TRACK)
-                                + " - "
-                                + validateName(oldFile.getTag().getFirst(TITLE))
-                                + EXTENSION_SEPARATOR
-                                + getExtension(oldFile.getFile().getName()));
+            if (!oldFile.getTag().getFirst(TRACK).isEmpty()
+                    && !oldFile.getTag().getFirst(TITLE).isEmpty()) {
+                if (rootItem.hasVaAttribute()) {
+                    newFile = new File(oldFile.getFile().getParentFile()
+                            .getAbsolutePath()
+                            + "\\"
+                            + oldFile.getTag().getFirst(TRACK)
+                            + " - "
+                            + validateName(oldFile.getTag().getFirst(ARTIST))
+                            + " - "
+                            + validateName(oldFile.getTag().getFirst(TITLE))
+                            + EXTENSION_SEPARATOR
+                            + getExtension(oldFile.getFile().getName()));
+                } else {
+                    newFile = new File(oldFile.getFile().getParentFile()
+                            .getAbsolutePath()
+                            + "\\"
+                            + oldFile.getTag().getFirst(TRACK)
+                            + " - "
+                            + validateName(oldFile.getTag().getFirst(TITLE))
+                            + EXTENSION_SEPARATOR
+                            + getExtension(oldFile.getFile().getName()));
+                }
+
+                renamedAudioList.add(new AudioProperties(newFile));
+
+                if (!oldFile.getFile().getName().equals(newFile.getName())) {
+                    out.println(oldFile.getFile().getName());
+
+                    try {
+                        oldFile.getFile().renameTo(newFile);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
                     }
 
-                    if (!oldFile.getFile().getName().equals(newFile.getName())) {
-                        out.println(oldFile.getFile().getName());
-
-                        try {
-                            oldFile.getFile().renameTo(newFile);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
                 }
             }
+        }
+        if (!renamedAudioList.isEmpty()) {
+            medium.setAudioList(renamedAudioList);
         }
     }
 
     private String buildArtistString() {
-        if (itemProperties.hasVaAttribute()) {
+        if (rootItem.hasVaAttribute()) {
             return "VA";
         } else {
             StringBuilder artistString = new StringBuilder();
@@ -280,14 +308,12 @@ public class FinalProcess {
 
     private String buildAlbumString() {
         StringBuilder albumString = new StringBuilder();
-        
-        
 
-        itemProperties.getMediumList().stream().map((medium) -> {
+        rootItem.getMediumList().stream().map((medium) -> {
             Set<Map.Entry<String, String>> set = medium.getYearAlbum().entrySet();
             return medium;
         }).forEach((medium) -> {
-            if (itemProperties.hasVaAttribute()) { //если VA
+            if (rootItem.hasVaAttribute()) { //если VA
                 albumString.append("VA")
                         .append(" - ")
                         .append(medium.getAlbum())
@@ -310,90 +336,102 @@ public class FinalProcess {
         return albumString.toString();
     }
 
-    private void move() throws KeyNotFoundException,
+    private void moveFactory(ItemProperties item) throws KeyNotFoundException,
             FieldDataInvalidException,
             IOException,
             TagException,
             ReadOnlyFileException,
             InvalidAudioFrameException,
             CannotReadException {
-        File newArtistFolder;
-        File newAlbumFolder;
-
-        boolean moved = false;
-        boolean artistFolderCreated = false;
-        boolean albumFolderCreated = false;
-
-        itemProperties.getMediumList().stream().map((medium) -> {
-            if (medium.getCurrentItem().getListOfOtherFiles().size() > 0) {
-                removeJunkFiles(medium.getCurrentItem().getListOfOtherFiles());
+        
+        for (Medium medium : item.getMediumList()) {
+            int cdN = 0;
+            if (medium.getCdN() != 0) {
+                cdN = medium.getCdN();
+            } else if (rootItem.getCdN() != 0) {
+                cdN = rootItem.getCdN();
             }
-            return medium;            
-        }).forEach((_item) -> {
-            if (itemProperties.hasVaAttribute()) {
-                
+
+            if (rootItem.hasVaAttribute()) {
+                File newAlbumDirectory = new File(Controller.pathTextArea.getText() + "\\" + buildAlbumString());
+                newAlbumDirectory.mkdir();
+
+                if (cdN > 0) {
+                    File cdDirectory = new File(newAlbumDirectory + "\\" + "CD" + cdN);
+                    cdDirectory.mkdir();
+                    
+                    
+                    
+                    organiseAll(rootItem, cdDirectory);
+                } else {
+                    
+                }
+
             } else {
-                
-            }
-        }); /*removeJunkFiles(folderContent[0].getParentFile());
-        if (va) {
-        albumFolder = new File(initFolder + "\\" + makeYearAlbumString());
-        albumFolderCreated = albumFolder.mkdir();
-        for (File file : folderContent) {
-        try {
-        if (file.isDirectory()) {
-        FileUtils.moveDirectoryToDirectory(file, albumFolder, false);
-        moved = true;
-        } else {
-        FileUtils.moveFileToDirectory(file, albumFolder, false);
-        moved = true;
-        }
-        } catch (IOException e) {
-        moved = false;
-        }
-        }
-        try {
-        if (moved) {
-        FileUtils.deleteDirectory(parentFolder);
-        } else if (moved && !artistFolderCreated) {
-        FileUtils.deleteDirectory(folderContent[0].getParentFile());
-        }
-        } catch (IOException e) {
-        System.out.println("move() va exception occures");
-        }
-        } else {
-        artistFolder = new File(initFolder + "\\" + makeArtistString());
-        albumFolder = new File(artistFolder + "\\" + makeYearAlbumString());
-        artistFolderCreated = artistFolder.mkdir();
-        albumFolderCreated = albumFolder.mkdir();
-        for (File file : folderContent) {
-        try {
-        if (file.isDirectory()) {
-        FileUtils.moveDirectoryToDirectory(file, albumFolder, false);
-        moved = true;
-        } else {
-        FileUtils.moveFileToDirectory(file, albumFolder, false);
-        moved = true;
-        }
-        } catch (Exception e) {
-        System.out.println("move() exception occures");
-        //e.printStackTrace();
-        moved = false;
-        }
-        }
-        try {
-        if (moved && artistFolderCreated) {
-        FileUtils.deleteDirectory(parentFolder);
-        } else if (moved && !artistFolderCreated) {
-        FileUtils.deleteDirectory(folderContent[0].getParentFile());
-        }
-        } catch (IOException e) {
-        System.out.println("move() exception occures");
-        }
-        //System.out.println(artistFolder.getAbsolutePath());
-        //System.out.println(albumFolder.getAbsolutePath());
-        }*/
+                File newArtistDirectory = new File(Controller.pathTextArea.getText() + "\\" + buildArtistString());
+                File newAlbumDirectory = new File(newArtistDirectory + "\\" + buildAlbumString());
 
+                newArtistDirectory.mkdir();
+                newAlbumDirectory.mkdir();
+
+                if (cdN > 0) {
+                    File cdDirectory = new File(newAlbumDirectory + "\\" + "CD" + cdN);
+                    cdDirectory.mkdir();
+
+                } else {
+
+                }
+            }
+
+        }
+
+    }
+
+    private void organiseAll(ItemProperties ip, File to) {
+        organiseAudio(ip, to);
+        organiseImages(ip, to);
+        organiseOthers(ip, to);
+    }
+
+    private void organiseAudio(ItemProperties ip, File to) {
+        if (ip.getListOfAudioFiles().isEmpty()) {
+            for (AudioProperties audio : ip.getListOfAudioFiles()) {
+                move(audio.getFile(), to);
+            }
+        }
+    }
+
+    private void organiseImages(ItemProperties ip, File to) {
+        if (ip.getListOfImageFiles().isEmpty()) {
+            if (ip.getListOfImageFiles().size() > 1) {
+                File coversFolder = new File(to + "\\" + "Covers");
+                coversFolder.mkdir();
+                for (File image : ip.getListOfImageFiles()) {
+                    move(image, coversFolder);
+                }
+            } else {
+                File origFolderFile = ip.getListOfImageFiles().get(0);
+                if (!origFolderFile.getName().contains("folder")) {
+                    File newFolderImage = new File(to + "\\" + "folder"
+                            + EXTENSION_SEPARATOR + getExtension(ip.getListOfImageFiles().get(0).getName()));
+                    ip.getListOfImageFiles().get(0).renameTo(newFolderImage);
+                } else {
+                    move(origFolderFile, to);
+                }
+            }
+        }
+    }
+
+    private void organiseOthers(ItemProperties ip, File to) {
+        if (ip.getListOfOtherFiles().isEmpty()) {
+            removeJunkFiles(ip.getListOfOtherFiles());
+        }
+
+        if (ip.getListOfOtherFiles().isEmpty()) {
+            for (File otherFile : ip.getListOfOtherFiles()) {
+                move(otherFile, to);
+            }
+        }
     }
 
     private void removeJunkFiles(ObservableList<File> listOfOtherFiles) {
@@ -407,6 +445,18 @@ public class FinalProcess {
                 listOfOtherFiles.get(i).delete();
                 listOfOtherFiles.remove(i);
             }
+        }
+    }
+
+    private void move(File from, File to) {
+        try {
+            if (from.isDirectory()) {
+                FileUtils.moveDirectoryToDirectory(from, to, false);
+            } else {
+                FileUtils.moveFileToDirectory(from, to, false);
+            }
+        } catch (IOException e) {
+            System.out.println("move() exception\nFrom " + from + "\nTo " + to);
         }
     }
 

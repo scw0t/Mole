@@ -136,6 +136,30 @@ public class AudioProperties {
         }
     }
 
+    public AudioProperties(File file) {
+        this.file = file;
+        fileName = new SimpleStringProperty(this, "fileName");
+        /*artistTitle = new SimpleStringProperty(this, "artistTitle");
+        albumTitle = new SimpleStringProperty(this, "albumTitle");
+        trackNumber = new SimpleStringProperty(this, "trackNumber");
+        trackTitle = new SimpleStringProperty(this, "trackTitle");
+        year = new SimpleStringProperty(this, "year");
+        cd_n = new SimpleIntegerProperty(this, "cd_n");
+        genres = new SimpleListProperty(this, "genres");
+        hasArtwork = new SimpleBooleanProperty(this, "hasArtwork");
+
+        fileName.setValue(file.getName());
+        
+        try {
+            audioFile = (MP3File) AudioFileIO.read(file);
+        } catch (CannotReadException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException ex) {
+            System.out.println("Ошибка чтения файла " + file.getAbsolutePath());
+        }*/
+        
+    }
+    
+    
+
     public File getFile() {
         return file;
     }

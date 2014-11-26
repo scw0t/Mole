@@ -99,7 +99,7 @@ public class Medium {
 
     }
 
-    public ObservableList<AudioProperties> getListOfAudioFiles() {
+    public ObservableList<AudioProperties> getAudioList() {
         return audioList;
     }
 

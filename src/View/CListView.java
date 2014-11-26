@@ -3,7 +3,10 @@ package View;
 import Entities.Issue;
 import Gears.FinalProcess;
 import Gears.Mole;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
@@ -31,6 +34,11 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import org.jaudiotagger.audio.exceptions.CannotReadException;
+import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
+import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
+import org.jaudiotagger.tag.KeyNotFoundException;
+import org.jaudiotagger.tag.TagException;
 
 public class CListView extends Stage {
     
@@ -70,7 +78,12 @@ public class CListView extends Stage {
             if (!cTable.getItems().isEmpty()) {
                 if (!cTable.getSelectionModel().isEmpty()) {
                     finalProcess.setSelectedIssue(cTable.getSelectionModel().getSelectedItem().getIssue());
-                    finalProcess.launch();
+                    try {
+                        finalProcess.launch();
+                    } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                        ex.printStackTrace();
+                        System.out.println("Final process");
+                    }
                 }
             }
             close();

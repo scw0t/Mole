@@ -187,7 +187,7 @@ public class Controller extends BorderPane {
                     infoStringBuilder.append("#CD")
                             .append(childMedium.getCdN())
                             .append("\n");
-                    for (AudioProperties track : childMedium.getListOfAudioFiles()) {
+                    for (AudioProperties track : childMedium.getAudioList()) {
                         infoStringBuilder.append(track.getTrackNumber())
                                 .append(". ")
                                 .append(track.getTrackTitle())
@@ -203,7 +203,7 @@ public class Controller extends BorderPane {
                         .append(" (")
                         .append(medium.getYear())
                         .append(")\n");
-                for (AudioProperties track : medium.getListOfAudioFiles()) {
+                for (AudioProperties track : medium.getAudioList()) {
                     infoStringBuilder.append(track.getTrackNumber())
                             .append(". ")
                             .append(track.getTrackTitle())
@@ -259,14 +259,10 @@ public class Controller extends BorderPane {
 
         @Override
         protected Object call() throws Exception {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    DirProcessor processor = new DirProcessor();
-                    processor.go();
-                    //tableView.getSelectionModel().clearSelection();
-                    tableView.getSelectionModel().select(0);
-                }
+            Platform.runLater(() -> {
+                DirProcessor processor = new DirProcessor();
+                processor.go();
+                tableView.getSelectionModel().select(0);
             });
             return null;
         }
@@ -304,16 +300,13 @@ public class Controller extends BorderPane {
 
         @Override
         protected Object call() throws Exception {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    DirectoryTreeView treeView = new DirectoryTreeView();
-                    try {
-                        initialDirectoryList.clear();
-                        treeView.drawGUI();
-                    } catch (IOException ex) {
-                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+            Platform.runLater(() -> {
+                DirectoryTreeView treeView = new DirectoryTreeView();
+                try {
+                    initialDirectoryList.clear();
+                    treeView.drawGUI();
+                } catch (IOException ex) {
+                    Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                 }
             });
             return null;
