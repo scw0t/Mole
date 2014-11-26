@@ -52,7 +52,7 @@ public class DirProcessor {
             Controller.tableView.itemsProperty().bind(task.valueProperty());
             Controller.tableView.getSelectionModel().clearSelection();
             //Controller.tableView.getSelectionModel().select(0);
-            
+
             new Thread(task).start();
         });
     }

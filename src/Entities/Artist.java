@@ -1,6 +1,5 @@
 package Entities;
 
-
 import java.util.ArrayList;
 
 public class Artist {
@@ -17,6 +16,10 @@ public class Artist {
     private ArrayList<String> aka;
     private ArrayList<Genre> genres;
 
+    /**
+     *
+     * @param name
+     */
     public Artist(String name) {
         this.link = "";
         this.notes = "";
@@ -31,6 +34,10 @@ public class Artist {
         genres = new ArrayList<>();
     }
 
+    /**
+     *
+     * @return
+     */
     public String firstThreeGenresToString() {
         String string = "";
         if (!genres.isEmpty()) {
@@ -57,6 +64,10 @@ public class Artist {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public String allGenresToString() {
         String string = "";
         if (!genres.isEmpty()) {
@@ -73,62 +84,122 @@ public class Artist {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     *
+     * @param name
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<Person> getMembers() {
         return members;
     }
 
+    /**
+     *
+     * @param members
+     */
     public void setMembers(ArrayList<Person> members) {
         this.members = members;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<Artist> getRelated() {
         return related;
     }
 
+    /**
+     *
+     * @param related
+     */
     public void setRelated(ArrayList<Artist> related) {
         this.related = related;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<String> getAka() {
         return aka;
     }
 
+    /**
+     *
+     * @param aka
+     */
     public void setAka(ArrayList<String> aka) {
         this.aka = aka;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<Genre> getGenres() {
         return genres;
     }
 
+    /**
+     *
+     * @param genres
+     */
     public void setGenres(ArrayList<Genre> genres) {
         this.genres = genres;
     }
 
+    /**
+     *
+     * @return
+     */
     public String getNotes() {
         return notes;
     }
 
+    /**
+     *
+     * @param notes
+     */
     public void setNotes(String notes) {
         this.notes = notes;
     }
 
+    /**
+     *
+     * @return
+     */
     public String getFormedDate() {
         return formedDate;
     }
 
+    /**
+     *
+     * @param formedDate
+     */
     public void setFormedDate(String formedDate) {
         this.formedDate = formedDate;
     }
 
+    /**
+     *
+     * @return
+     */
     public String getCountry() {
         if (country.equals("United Kingdom")) {
             country = "UK";
@@ -140,30 +211,58 @@ public class Artist {
         return country;
     }
 
+    /**
+     *
+     * @param country
+     */
     public void setCountry(String country) {
         this.country = country;
     }
 
+    /**
+     *
+     * @return
+     */
     public String getDiedDate() {
         return diedDate;
     }
 
+    /**
+     *
+     * @param diedDate
+     */
     public void setDiedDate(String diedDate) {
         this.diedDate = diedDate;
     }
 
+    /**
+     *
+     * @return
+     */
     public ArrayList<Artist> getMemberOf() {
         return memberOf;
     }
 
+    /**
+     *
+     * @param memberOf
+     */
     public void setMemberOf(ArrayList<Artist> memberOf) {
         this.memberOf = memberOf;
     }
 
+    /**
+     *
+     * @return
+     */
     public String getLink() {
         return link;
     }
 
+    /**
+     *
+     * @param link
+     */
     public void setLink(String link) {
         this.link = link;
     }

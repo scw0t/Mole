@@ -1,6 +1,5 @@
 package Gears;
 
-import View.CatDialog;
 import Entities.Issue;
 import Entities.Record;
 import java.io.File;
@@ -62,7 +61,6 @@ public class AudioWorker {
     private boolean hasMultiCD;
     private boolean issueChoosed = false;
     private Issue selectedIssue;
-    private CatDialog catDialog;
 
     private String country;
     private String artistGenres;
@@ -163,72 +161,6 @@ public class AudioWorker {
                 }
 
                 if (!rymp.getCurrentRecord().getIssues().isEmpty()) {
-                    Platform.runLater(new Runnable() {
-
-                        @Override
-                        public void run() {
-
-                            try {
-                                if (getCatDialog() == null) {
-                                    setCatDialog(new CatDialog());
-                                    getCatDialog().initGUI();
-                                }
-
-                                getCatDialog().setContent(rymp.getCurrentRecord().getIssues());
-
-                                /*getCatDialog().getOkButton().setOnAction(new EventHandler<ActionEvent>() {
-                                    @Override
-                                    public void handle(ActionEvent t) {
-                                        try {
-                                            issueChoosed = true;
-                                            if (getCatDialog().getCatList().getItems() != null) {
-                                                System.out.println(getCatDialog().getCatList().getSelectionModel().getSelectedItem().getIssue().getCatNumber());
-                                                selectedIssue = getCatDialog().getCatList().getSelectionModel().getSelectedItem().getIssue();
-                                                editTracks();
-                                                //DirWorker.keySwitch.set(true);
-                                                getCatDialog().hide();
-
-                                            } else {
-                                                System.out.println("null");
-                                            }
-                                        } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                                            Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
-                                        } finally {
-                                            //DirWorker.latch.countDown();
-                                        }
-                                    }
-                                });*/
-
-                                getCatDialog().getCancelButton().setOnAction(new EventHandler<ActionEvent>() {
-                                    @Override
-                                    public void handle(ActionEvent t) {
-                                        try {
-                                            issueChoosed = false;
-                                            editTracks();
-                                            getCatDialog().hide();
-                                        } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-                                            Logger.getLogger(AudioWorker.class.getName()).log(Level.SEVERE, null, ex);
-                                        }
-                                    }
-                                });
-
-                                if (!getCatDialog().isShowing()) {
-                                    getCatDialog().showAndWait();
-
-                                    while (!DirWorker.keyPressed) {
-                                        System.out.println("Await: ");
-                                        try {
-                                            DirWorker.latch.await();
-                                        } catch (Exception ex) {
-                                            ex.printStackTrace();
-                                        }
-                                    }
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
 
                 }
                 processed = true;
@@ -979,14 +911,6 @@ public class AudioWorker {
      */
     public void setFolderContent(File[] folderContent) {
         this.folderContent = folderContent;
-    }
-
-    public CatDialog getCatDialog() {
-        return catDialog;
-    }
-
-    public void setCatDialog(CatDialog catDialog) {
-        this.catDialog = catDialog;
     }
 
 }

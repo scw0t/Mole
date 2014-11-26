@@ -5,15 +5,14 @@ import Entities.Record;
 import OutEntities.ItemProperties;
 import OutEntities.Medium;
 import java.io.IOException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.collections.FXCollections;
+import static javafx.collections.FXCollections.observableArrayList;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import org.apache.commons.lang3.StringUtils;
+import static org.apache.commons.lang3.StringUtils.getLevenshteinDistance;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.FieldDataInvalidException;
@@ -22,36 +21,43 @@ import org.jaudiotagger.tag.TagException;
 
 public class ParseFactory {
 
-    private ItemProperties itemsProps;
+    private final ItemProperties itemsProps;
     private final RYMParser rymp;
-    private SimpleListProperty<Issue> issueListProperty;
-    private ObservableList<Issue> issueList;
+    private final SimpleListProperty<Issue> issueListProperty;
+    private final ObservableList<Issue> issueList;
     private StringProperty message;
 
+    /**
+     *
+     * @param itemsProps
+     */
     public ParseFactory(ItemProperties itemsProps) {
         this.itemsProps = itemsProps;
         message = new SimpleStringProperty();
-        issueList = FXCollections.observableArrayList();
+        issueList = observableArrayList();
         issueListProperty = new SimpleListProperty<>(issueList);
         rymp = new RYMParser();
         rymp.setMessage(message);
     }
 
+    /**
+     *
+     */
     public void launch() {
         if (itemsProps.hasVaAttribute()) {                      //СБОРНИК
-            if (itemsProps.getCdN() > 0) {                      //CD>1
-                System.out.println("Not supported yet");
-            } else {                                            //1
-                System.out.println("Not supported yet");
+            if (itemsProps.getCdN() > 0) {
+                //CD>1
+            } else {
+                //1
             }
 
         } else {                                                //ОБЫЧНЫЙ
-            if (itemsProps.getCdN() > 0) {                      //CD>1
-                System.out.println("Not supported yet");
+            if (itemsProps.getCdN() > 0) {
+                //CD>1
             } else {                                            //1
-                for (Medium medium : itemsProps.getMediumList()) {
+                itemsProps.getMediumList().stream().forEach((medium) -> {
                     searchCommonRelease(medium);
-                }
+                });
             }
         }
     }
@@ -72,10 +78,9 @@ public class ParseFactory {
                         TagException |
                         ReadOnlyFileException |
                         InvalidAudioFrameException ex) {
-                    Logger.getLogger(ParseFactory.class.getName()).log(Level.SEVERE, null, ex);
                 }
             } else {
-                
+
             }
         }
 
@@ -96,7 +101,7 @@ public class ParseFactory {
 
         // Проверяем альбомы
         for (Record record : rymp.getLpRecords()) {
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -105,8 +110,7 @@ public class ParseFactory {
 
         // Проверяем live albums
         for (Record record : rymp.getLiveRecords()) {
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -115,8 +119,7 @@ public class ParseFactory {
 
         // Проверяем compilations
         for (Record record : rymp.getCompRecords()) {
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -124,8 +127,7 @@ public class ParseFactory {
         }
 
         for (Record record : rymp.getBootlegRecords()) {
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -134,8 +136,7 @@ public class ParseFactory {
 
         // Проверяем va
         for (Record record : rymp.getVaRecords()) {
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -149,14 +150,11 @@ public class ParseFactory {
                 for (String singlePart : record.getName().split(" / ")) {
                     if (singlePart.equals(rymp.getInputAlbumName())) {
                         recordQuantityMatches++;
-                        System.out.println(singlePart);
                     }
                 }
             }
 
-            System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -173,13 +171,11 @@ public class ParseFactory {
                 for (String singlePart : record.getName().split(" / ")) {
                     if (singlePart.equals(rymp.getInputAlbumName())) {
                         recordQuantityMatches++;
-                        System.out.println(singlePart);
                     }
                 }
             }
 
-            if (StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
-                System.out.println("Lev distance = " + StringUtils.getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()));
+            if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
                 rymp.parseAlbumInfo();
                 break;
@@ -188,34 +184,61 @@ public class ParseFactory {
 
     }
 
+    /**
+     *
+     * @return
+     */
     public ObservableList<Issue> getIssueList() {
         return issueList;
     }
 
+    /**
+     *
+     * @return
+     */
     public SimpleListProperty<Issue> getIssueListProperty() {
         return issueListProperty;
     }
 
+    /**
+     *
+     * @return
+     */
     public StringProperty getMessageProperty() {
         return message;
     }
 
+    /**
+     *
+     * @param message
+     */
     public void setMessageProperty(StringProperty message) {
         this.message = message;
     }
-    
+
+    /**
+     *
+     * @return
+     */
     public String getMessageValue() {
         return message.getValue();
     }
 
+    /**
+     *
+     * @param message
+     */
     public void setMessageValue(String message) {
         this.message.setValue(message);
     }
 
+    /**
+     *
+     * @return
+     */
     public RYMParser getRymp() {
         return rymp;
     }
-
 
     class TestTask extends Task {
 
@@ -225,5 +248,6 @@ public class ParseFactory {
             return null;
         }
     }
+    private static final Logger LOG = Logger.getLogger(ParseFactory.class.getName());
 
 }

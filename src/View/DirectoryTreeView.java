@@ -176,7 +176,7 @@ public class DirectoryTreeView extends Stage {
             ImageView imgView = new ImageView();
             Image icon = null;
             if (isDrive) {
-                icon = new Image(new FileInputStream("hp_hdd.png"));
+                icon = new Image(new FileInputStream("hdd3.png"));
             } else {
                 icon = new Image(new FileInputStream("opened_folder.png"));
             }

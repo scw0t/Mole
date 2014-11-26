@@ -8,17 +8,28 @@ public class IncomingDirectory {
     
     private final ObjectProperty<File> currentDirectory;
 
+    /**
+     *
+     * @param directory
+     */
     public IncomingDirectory(File directory) {
         currentDirectory = new SimpleObjectProperty<>(this, "dir");
         currentDirectory.set(directory);
     }
 
-    public final ObjectProperty<File> currentDirectoryProperty() {
+    /**
+     *
+     * @return
+     */
+    public ObjectProperty<File> currentDirectoryProperty() {
         return currentDirectory;
     }
     
-    public final File getValue(){
+    /**
+     *
+     * @return
+     */
+    public File getValue(){
         return currentDirectory.getValue();
     }
-    
 }

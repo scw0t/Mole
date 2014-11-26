@@ -1,7 +1,8 @@
 package Gears;
 
+import static Gears.Mole.primaryStage;
 import java.util.ArrayList;
-import javafx.beans.value.ChangeListener;
+import java.util.logging.Logger;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -13,31 +14,33 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
+import static javafx.stage.Modality.WINDOW_MODAL;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
+import static javafx.stage.StageStyle.DECORATED;
 
 public class TestChooser extends Stage {
 
     private ArrayList<String> issues;
     private final StackPane issuesLayout;
 
+    /**
+     *
+     */
     public TestChooser() {
-        super(StageStyle.DECORATED);
-        this.initModality(Modality.WINDOW_MODAL);
-        this.initOwner(Mole.primaryStage);
+        super(DECORATED);
+        this.initModality(WINDOW_MODAL);
+        this.initOwner(primaryStage);
         issuesLayout = new StackPane();
         issuesLayout.setPadding(new Insets(10));
     }
 
+    /**
+     *
+     */
     public void init() {
         final ToggleGroup toggleGroup = new ToggleGroup();
-        toggleGroup.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
-            @Override
-            public void changed(ObservableValue<? extends Toggle> ov, Toggle t, Toggle t1) {
-                if (toggleGroup.getSelectedToggle() != null) {
-                    System.out.println(toggleGroup.getSelectedToggle().getUserData().toString());
-                }
+        toggleGroup.selectedToggleProperty().addListener((ObservableValue<? extends Toggle> ov, Toggle t, Toggle t1) -> {
+            if (toggleGroup.getSelectedToggle() != null) {
             }
         });
         Button okButton = new Button("OK");
@@ -69,16 +72,20 @@ public class TestChooser extends Stage {
 
     }
 
+    /**
+     *
+     * @param issues
+     */
     public void setIssues(ArrayList<String> issues) {
         this.issues = issues;
     }
 
-    class IssueHBox extends HBox {
+    final class IssueHBox extends HBox {
 
         String issue;
         ToggleGroup toggleGroup;
 
-        public IssueHBox(double d, String issue, ToggleGroup toggleGroup) {
+        IssueHBox(double d, String issue, ToggleGroup toggleGroup) {
             super(d);
             this.issue = issue;
             this.toggleGroup = toggleGroup;
@@ -98,7 +105,7 @@ public class TestChooser extends Stage {
             vBox.getChildren().addAll(hBox1, hBox2);
             IssueRadioButton radioButton = new IssueRadioButton(null, issue);
             radioButton.setToggleGroup(toggleGroup);
-            radioButton.setUserData((VBox) vBox);
+            radioButton.setUserData(vBox);
             this.getChildren().addAll(radioButton);
         }
     }
@@ -107,9 +114,10 @@ public class TestChooser extends Stage {
 
         String issue;
 
-        public IssueRadioButton(String string, String issue) {
+        IssueRadioButton(String string, String issue) {
             super(string);
             this.issue = issue;
         }
     }
+    private static final Logger LOG = Logger.getLogger(TestChooser.class.getName());
 }

@@ -2,9 +2,10 @@ package View;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.logging.Logger;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.cell.CheckBoxTableCell;
+import static javafx.scene.control.cell.CheckBoxTableCell.forTableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -15,6 +16,10 @@ public class ItemTableView<ItemModel> extends TableView<ItemModel>{
     private final TableColumn<ItemModel, String> nameCol;
     private final TableColumn<ItemModel, String> progressCol;
 
+    /**
+     *
+     * @throws FileNotFoundException
+     */
     public ItemTableView() throws FileNotFoundException {
         checkCol = new TableColumn<>("");
         nameCol = new TableColumn<>("Name");
@@ -40,7 +45,7 @@ public class ItemTableView<ItemModel> extends TableView<ItemModel>{
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
         progressCol.setCellValueFactory(new PropertyValueFactory<>("progress"));
 
-        checkCol.setCellFactory(CheckBoxTableCell.forTableColumn(checkCol));
+        checkCol.setCellFactory(forTableColumn(checkCol));
         checkCol.setEditable(true);
         progressCol.setEditable(false);
         setEditable(true);
@@ -48,12 +53,19 @@ public class ItemTableView<ItemModel> extends TableView<ItemModel>{
 
     }
 
+    /**
+     *
+     * @return
+     */
     public TableColumn<ItemModel, Boolean> getCheckCol() {
         return checkCol;
     }
 
+    /**
+     *
+     * @return
+     */
     public TableColumn<ItemModel, String> getNameCol() {
         return nameCol;
     }
-
 }

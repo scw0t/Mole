@@ -1,29 +1,35 @@
 package OutEntities;
 
-import Gears.DirProcessor;
+import static Gears.DirProcessor.hasAudio;
+import static Gears.DirProcessor.hasImages;
+import static Gears.DirProcessor.numberOfCD;
 import java.io.File;
 import java.io.IOException;
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
+import static java.lang.System.out;
 import java.util.LinkedList;
+import java.util.logging.Logger;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
+import static javafx.collections.FXCollections.observableArrayList;
 import javafx.collections.ObservableList;
 import javax.activation.MimetypesFileTypeMap;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import static org.apache.commons.io.FileUtils.listFilesAndDirs;
+import static org.apache.commons.io.FilenameUtils.getExtension;
+import static org.apache.commons.io.filefilter.DirectoryFileFilter.DIRECTORY;
 import org.apache.commons.io.filefilter.NotFileFilter;
-import org.apache.commons.io.filefilter.TrueFileFilter;
+import static org.apache.commons.io.filefilter.TrueFileFilter.INSTANCE;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
 import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.TagException;
 
 //Сущность, систематизирующая папки релиза, предназначенные для обработки и исключающая из нее лишние файлов 
-public final class ItemProperties {
+public class ItemProperties {
 
     private final File dir;
 
@@ -47,6 +53,10 @@ public final class ItemProperties {
     private ObservableList<File> listOfInnerDirectories;
 
     //принимает директорию из parsedDirList
+    /**
+     *
+     * @param dir
+     */
     public ItemProperties(File dir) {
         this.dir = dir;
 
@@ -57,48 +67,46 @@ public final class ItemProperties {
         cdNAttribute = new SimpleIntegerProperty(this, "cdN");
         imageAttribute = new SimpleBooleanProperty(this, "imageAttribute");
         vaAttribute = new SimpleBooleanProperty(this, "vaAttribute");
-        vaAttribute.setValue(Boolean.FALSE);
+        vaAttribute.setValue(FALSE);
         innerDirectoryAttribute = new SimpleBooleanProperty(this, "innerDirectoryAttribute");
-        innerDirectoryAttribute.setValue(Boolean.FALSE);
+        innerDirectoryAttribute.setValue(FALSE);
 
-        mediumList = FXCollections.observableArrayList();
-        listOfAudioFiles = FXCollections.observableArrayList();
-        listOfImageFiles = FXCollections.observableArrayList();
-        listOfOtherFiles = FXCollections.observableArrayList();
-        listOfInnerDirectories = FXCollections.observableArrayList();
+        mediumList = observableArrayList();
+        listOfAudioFiles = observableArrayList();
+        listOfImageFiles = observableArrayList();
+        listOfOtherFiles = observableArrayList();
+        listOfInnerDirectories = observableArrayList();
 
         directoryName.setValue(dir.getName());
 
         try {
-            setAudioAttribute(DirProcessor.hasAudio(dir));
-            setImageAttribute(DirProcessor.hasImages(dir));
-            setNumOfCD(DirProcessor.numberOfCD(dir));
+            setAudioAttribute(hasAudio(dir));
+            setImageAttribute(hasImages(dir));
+            setNumOfCD(numberOfCD(dir));
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
-            System.out.println("Ошибка при добавлении атрибутов");
         }
     }
 
     // сканирование директории
     // добавление потомков
+    
     public void lookForChildEntities() {
         parentDir = new SimpleObjectProperty<>(this, "parentDir"); //инициализируем родителя при сканировании нового кластера
         parentDir.setValue(dir);
         currentDir.setValue(dir);
         fillListsOfInnerFiles(this); //сортируем файлы в родительской папке
 
-        System.out.println(getDirectoryName());
+        out.println(getDirectoryName());
         testLists();
 
         addChilds();
 
-        System.out.println("-----");
     }
 
     private void addChilds() {
-        childList = FXCollections.observableArrayList();
-        LinkedList<File> childLinkedList = (LinkedList) FileUtils.listFilesAndDirs(parentDir.getValue(),
-                new NotFileFilter(TrueFileFilter.INSTANCE),
-                DirectoryFileFilter.DIRECTORY);
+        childList = observableArrayList();
+        LinkedList<File> childLinkedList = (LinkedList) listFilesAndDirs(parentDir.getValue(),
+                new NotFileFilter(INSTANCE), DIRECTORY);
         childLinkedList.removeFirst();
 
         int cdNotProcessed = getCdN();
@@ -128,6 +136,10 @@ public final class ItemProperties {
          }*/
     }
 
+    /**
+     *
+     * @param fp
+     */
     public void fillListsOfInnerFiles(ItemProperties fp) {
         //System.out.println(dir.getName());
         File currDirectory = fp.getCurrentDir().getValue();
@@ -181,46 +193,40 @@ public final class ItemProperties {
 
     private void testLists() {
         if (!listOfAudioFiles.isEmpty()) {
-            System.out.println("--Audio:");
-            for (AudioProperties file : listOfAudioFiles) {
-                System.out.println(file.getFile().getAbsolutePath());
-            }
+            listOfAudioFiles.stream().forEach((file) -> {
+                out.println(file.getFile().getAbsolutePath());
+            });
         }
 
         if (!listOfImageFiles.isEmpty()) {
-            System.out.println("--Images:");
-            for (File file : listOfImageFiles) {
-                System.out.println(file.getAbsolutePath());
-            }
+            listOfImageFiles.stream().forEach((file) -> {
+                out.println(file.getAbsolutePath());
+            });
         }
 
         if (!listOfOtherFiles.isEmpty()) {
-            System.out.println("--Others:");
-            for (File file : listOfOtherFiles) {
-                System.out.println(file.getAbsolutePath());
-            }
+            listOfOtherFiles.stream().forEach((file) -> {
+                out.println(file.getAbsolutePath());
+            });
         }
     }
 
     private void attachCoversDirectory() {
         if (!listOfAudioFiles.isEmpty()) {
-            LinkedList<File> directories = (LinkedList) FileUtils.listFilesAndDirs(getListOfAudioFiles().get(0).getFile().getParentFile(),
-                    new NotFileFilter(TrueFileFilter.INSTANCE),
-                    DirectoryFileFilter.DIRECTORY);
+            LinkedList<File> directories = (LinkedList) listFilesAndDirs(getListOfAudioFiles().get(0).getFile().getParentFile(),
+                    new NotFileFilter(INSTANCE), DIRECTORY);
             directories.removeFirst();
-            for (File d : directories) {
-                if (DirProcessor.hasImages(d)) {
-                    listOfInnerDirectories.add(d);
-                }
-            }
+            directories.stream().filter((d) -> (hasImages(d))).forEach((d) -> {
+                listOfInnerDirectories.add(d);
+            });
             if (!listOfInnerDirectories.isEmpty()) {
-                innerDirectoryAttribute.setValue(Boolean.TRUE);
+                innerDirectoryAttribute.setValue(TRUE);
             }
         }
     }
 
     private boolean isAudio(File file) {
-        return FilenameUtils.getExtension(file.toString()).toLowerCase().equals("mp3");
+        return getExtension(file.toString()).toLowerCase().equals("mp3");
     }
 
     private boolean isImage(File file) {
@@ -229,92 +235,179 @@ public final class ItemProperties {
         return type.equals("image");
     }
 
+    /**
+     *
+     * @return
+     */
     public String getDirectoryName() {
         return directoryName.getValue();
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean hasAudioAttribute() {
         return audioAttribute.getValue();
     }
 
+    /**
+     *
+     * @return
+     */
     public int getCdN() {
         return cdNAttribute.getValue();
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean hasImageAttribute() {
         return imageAttribute.getValue();
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean hasVaAttribute() {
         return vaAttribute.getValue();
     }
 
+    /**
+     *
+     * @return
+     */
     public ObjectProperty<File> getParentDir() {
         return parentDir;
     }
 
+    /**
+     *
+     * @param parentDir
+     */
     public void setParentDir(ObjectProperty<File> parentDir) {
         this.parentDir = parentDir;
     }
 
+    /**
+     *
+     * @param isAudio
+     */
     public void setAudioAttribute(boolean isAudio) {
         this.audioAttribute.setValue(isAudio);
     }
 
+    /**
+     *
+     * @param numOfCD
+     */
     public void setNumOfCD(int numOfCD) {
         this.cdNAttribute.setValue(numOfCD);
     }
 
+    /**
+     *
+     * @param isImage
+     */
     public void setImageAttribute(boolean isImage) {
         this.imageAttribute.setValue(isImage);
     }
 
+    /**
+     *
+     * @param isVa
+     */
     public void setVaAttribute(boolean isVa) {
         this.vaAttribute.setValue(isVa);
     }
 
+    /**
+     *
+     * @return
+     */
     public ObservableList<ItemProperties> getChildList() {
         return childList;
     }
 
+    /**
+     *
+     * @return
+     */
     public ObservableList<AudioProperties> getListOfAudioFiles() {
         return listOfAudioFiles;
     }
 
+    /**
+     *
+     * @param listOfAudioFiles
+     */
     public void setListOfAudioFiles(ObservableList<AudioProperties> listOfAudioFiles) {
         this.listOfAudioFiles = listOfAudioFiles;
     }
 
+    /**
+     *
+     * @return
+     */
     public ObservableList<File> getListOfImageFiles() {
         return listOfImageFiles;
     }
 
+    /**
+     *
+     * @param listOfImageFiles
+     */
     public void setListOfImageFiles(ObservableList<File> listOfImageFiles) {
         this.listOfImageFiles = listOfImageFiles;
     }
 
+    /**
+     *
+     * @return
+     */
     public ObservableList<File> getListOfOtherFiles() {
         return listOfOtherFiles;
     }
 
+    /**
+     *
+     * @param listOfOtherFiles
+     */
     public void setListOfOtherFiles(ObservableList<File> listOfOtherFiles) {
         this.listOfOtherFiles = listOfOtherFiles;
     }
 
+    /**
+     *
+     * @return
+     */
     public ObjectProperty<File> getCurrentDir() {
         return currentDir;
     }
 
+    /**
+     *
+     * @param dir
+     */
     public void setCurrentDir(File dir) {
         this.currentDir.set(dir);
     }
 
+    /**
+     *
+     * @return
+     */
     public ObservableList<Medium> getMediumList() {
         return mediumList;
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean hasInnerDirectoryAttribute() {
         return innerDirectoryAttribute.getValue();
     }
-
 }

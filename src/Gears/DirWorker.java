@@ -1,6 +1,5 @@
 package Gears;
 
-import View.CatDialog;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -40,7 +39,6 @@ public class DirWorker {
     static CountDownLatch latch;
     static boolean keyPressed;
 
-    private CatDialog catDialog;
 
     public DirWorker(File initFolder) {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
@@ -52,8 +50,6 @@ public class DirWorker {
         Platform.runLater(new Task() {
             @Override
             public Object call() {
-                catDialog = new CatDialog();
-                catDialog.initGUI();
                 return null;
             }
         });
@@ -100,7 +96,6 @@ public class DirWorker {
 
                                             try {
                                                 process(dir);
-                                                keyPressed = catDialog.isKeyPressed();
                                             } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException | InterruptedException ex) {
                                                 Logger.getLogger(DirWorker.class.getName()).log(Level.SEVERE, null, ex);
                                             }
@@ -299,7 +294,6 @@ public class DirWorker {
         audioWorker.setParentFolder(parentFolder);
         audioWorker.setFolderContent(dir.listFiles());
         audioWorker.setHasMultiCD(hasMultiCD);
-        audioWorker.setCatDialog(catDialog);
 
         audioWorker.process();
 
@@ -386,13 +380,6 @@ public class DirWorker {
         this.logOutput = logOutput;
     }
 
-    public CatDialog getCatDialog() {
-        return catDialog;
-    }
-
-    public void setCatDialog(CatDialog catDialog) {
-        this.catDialog = catDialog;
-    }
 
     class CustomBooleanProperty extends SimpleBooleanProperty {
 

@@ -4,12 +4,13 @@ import View.Controller;
 import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
 import java.io.IOException;
+import static java.lang.System.out;
 import java.util.List;
-import java.util.logging.Level;
+import static java.util.logging.Level.OFF;
 import java.util.logging.Logger;
+import static java.util.logging.Logger.getLogger;
 import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.event.EventHandler;
+import static javafx.application.Platform.exit;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -30,26 +31,25 @@ import org.musicbrainz.model.searchresult.ArtistResultWs2;
 
 public class Mole extends Application {
 
+    /**
+     *
+     */
     public static Stage primaryStage;
 
     @Override
     public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
-        Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
+        getLogger("org.jaudiotagger").setLevel(OFF);
         
         Scene scene = new Scene(new Controller(), 650, 900);
         scene.getStylesheets().add(getClass().getResource("toolbarStyle.css").toExternalForm());
 
         primaryStage.setTitle("hi!");
         primaryStage.setScene(scene);
-        primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent event) {
-                Platform.exit();
-            }
+        primaryStage.setOnCloseRequest((WindowEvent event) -> {
+            exit();
         });
 
         primaryStage.show();
-        this.primaryStage = primaryStage;
 
         /*try {
          musicbrainzTest();
@@ -64,6 +64,10 @@ public class Mole extends Application {
          //        }*/
     }
 
+    /**
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         launch(args);
     }
@@ -112,24 +116,51 @@ public class Mole extends Application {
                 return t.getYear().compareTo(t1.getYear());
             }
         });*/
-
-        for (ReleaseWs2 release : releases) {
-            System.out.println("-----------------------------------");
-            System.out.println(release.getId());
-            System.out.println(release.getIdUri());
-            System.out.println("Artist credit: " + release.getArtistCredit());
-            System.out.println("Asin: " + release.getAsin());
-            System.out.println("Barcode: " + release.getBarcode());
-            System.out.println("CountryId: " + release.getCountryId());
-            System.out.println("DateStr: " + release.getDateStr());
-            System.out.println("Disambiguation: " + release.getDisambiguation());
-            System.out.println("Duration: " + release.getDuration());
-            System.out.println("Format: " + release.getFormat());
-            System.out.println("LabelInfo: " + release.getLabelInfoString());
-            System.out.println("Quality: " + release.getQualityStr());
-            System.out.println("Status: " + release.getStatus());
-            System.out.println("Year: " + release.getYear());
-        }
+        releases.stream().map((release) -> {
+            out.println("-----------------------------------");
+            return release;
+        }).map((release) -> {
+            out.println(release.getId());
+            return release;
+        }).map((release) -> {
+            out.println(release.getIdUri());
+            return release;
+        }).map((release) -> {
+            out.println("Artist credit: " + release.getArtistCredit());
+            return release;
+        }).map((release) -> {
+            out.println("Asin: " + release.getAsin());
+            return release;
+        }).map((release) -> {
+            out.println("Barcode: " + release.getBarcode());
+            return release;
+        }).map((release) -> {
+            out.println("CountryId: " + release.getCountryId());
+            return release;
+        }).map((release) -> {
+            out.println("DateStr: " + release.getDateStr());
+            return release;
+        }).map((release) -> {
+            out.println("Disambiguation: " + release.getDisambiguation());
+            return release;
+        }).map((release) -> {
+            out.println("Duration: " + release.getDuration());
+            return release;
+        }).map((release) -> {
+            out.println("Format: " + release.getFormat());
+            return release;
+        }).map((release) -> {
+            out.println("LabelInfo: " + release.getLabelInfoString());
+            return release;
+        }).map((release) -> {
+            out.println("Quality: " + release.getQualityStr());
+            return release;
+        }).map((release) -> {
+            out.println("Status: " + release.getStatus());
+            return release;
+        }).forEach((release) -> {
+            out.println("Year: " + release.getYear());
+        });
 
         ReleaseWs2 album = releases.get(0);
 
@@ -138,27 +169,26 @@ public class Mole extends Application {
 
         MediumListWs2 releaselist1 = releaselist.getComplete(album).getMediumList();
 
-        System.out.println(releaselist.getComplete(album).getId());
-        System.out.println(releaselist.getComplete(album).getUserRating().getAverageRating());
+        out.println(releaselist.getComplete(album).getId());
+        out.println(releaselist.getComplete(album).getUserRating().getAverageRating());
 
         List<TrackWs2> tracklist = releaselist1.getCompleteTrackList();
 
         List<PuidWs2> puids = tracklist.get(0).getRecording().getPuids();
 
-        for (PuidWs2 id : puids) {
-            System.out.println(id.getId());
-        }
+        puids.stream().forEach((id) -> {
+            out.println(id.getId());
+        });
 
-        System.out.println("artist: " + artist);
-        System.out.println("album: " + album);
-        System.out.println("title: " + tracklist.get(0).getRecording().getTitle());
-        System.out.println("genre: " + tracklist.get(0).getRecording().getTags().get(0).getName());
-        System.out.println("track: " + tracklist.get(0).getPosition());
-        System.out.println("year: " + album.getYear());
-        System.out.println("disc no.: " + releaselist1.getMedia().get(0));
-        System.out.println("label: " + album.getLabelInfoString());
-        System.out.println("artist sort : " + tracklist.get(0).getRecording().getArtistCreditString());
-        System.out.println("comment: " + tracklist.get(0).getRecording().getDisambiguation());
+        out.println("artist: " + artist);
+        out.println("album: " + album);
+        out.println("title: " + tracklist.get(0).getRecording().getTitle());
+        out.println("genre: " + tracklist.get(0).getRecording().getTags().get(0).getName());
+        out.println("track: " + tracklist.get(0).getPosition());
+        out.println("year: " + album.getYear());
+        out.println("disc no.: " + releaselist1.getMedia().get(0));
+        out.println("label: " + album.getLabelInfoString());
+        out.println("artist sort : " + tracklist.get(0).getRecording().getArtistCreditString());
     }
 
     /*private void gracenoteTest() throws GracenoteException {
@@ -181,12 +211,11 @@ public class Mole extends Application {
         List<com.echonest.api.v4.Artist> artists = echoNest.searchArtists("After All");
         if (artists.size() > 0) {
             com.echonest.api.v4.Artist artist = artists.get(0);
-            System.out.println("Similar artists for " + artist.getName());
             for (com.echonest.api.v4.Artist simArtist : artist.getSimilar(10)) {
-                System.out.println(" " + simArtist.getName());
             }
         }
 
     }
+    private static final Logger LOG = Logger.getLogger(Mole.class.getName());
 
 }

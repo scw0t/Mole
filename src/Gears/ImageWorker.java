@@ -8,7 +8,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
-import org.jaudiotagger.audio.mp3.MP3File;
 
 public class ImageWorker {
     

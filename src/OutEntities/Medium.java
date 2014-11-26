@@ -11,18 +11,27 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 
 public class Medium {
-    
+
+    public static <E> E get(Collection<E> collection, int index) {
+        Iterator<E> i = collection.iterator();
+        E element = null;
+        while (i.hasNext() && index-- >= 0) {
+            element = i.next();
+        }
+        return element;
+    }
+
     private final ItemProperties currentItem;
 
     private ObservableList<AudioProperties> audioList;
 
-    private SimpleIntegerProperty cdN;
-    private SimpleStringProperty album;
-    private SimpleStringProperty artist;
-    private SimpleStringProperty year;
-    private SimpleStringProperty genres;
-    private SimpleBooleanProperty hasArtwork;
-    private HashMap<String, String> yearAlbum;
+    private final SimpleIntegerProperty cdN;
+    private final SimpleStringProperty album;
+    private final SimpleStringProperty artist;
+    private final SimpleStringProperty year;
+    private final SimpleStringProperty genres;
+    private final SimpleBooleanProperty hasArtwork;
+    private final HashMap<String, String> yearAlbum;
 
     public Medium(ItemProperties currentItem) {
         this.audioList = currentItem.getListOfAudioFiles();
@@ -41,20 +50,29 @@ public class Medium {
         SortedSet<String> albums = new TreeSet<>();
         SortedSet<String> genres = new TreeSet<>();
         SortedSet<String> years = new TreeSet<>();
-        
-        for (AudioProperties audio : audioList) {
+
+        audioList.stream().map((audio) -> {
             artists.add(audio.getArtistTitle());
+            return audio;
+        }).map((audio) -> {
             albums.add(audio.getAlbumTitle());
+            return audio;
+        }).map((audio) -> {
             years.add(audio.getYear());
-            for (String genre : audio.getGenres()) {
+            return audio;
+        }).map((audio) -> {
+            audio.getGenres().stream().forEach((genre) -> {
                 genres.add(genre);
-            }
+            });
+            return audio;
+        }).map((audio) -> {
             if (audio.getCdN() != 0) {
                 cdN.set(audio.getCdN());
             }
-            
+            return audio;
+        }).forEach((audio) -> {
             yearAlbum.put(audio.getAlbumTitle(), audio.getYear());
-        }
+        });
 
         if (artists.size() > 1) {
             artist.set("VA");
@@ -68,28 +86,17 @@ public class Medium {
 
         if (albums.size() > 1) {
             /*String albStr = "";
-            for (int i = 0; i < albums.size(); i++) {
-                albStr += get(albums, i);
-                if (i < albums.size() - 1) {
-                    albStr += " + ";
-                }
-            }
-            album.set(albStr);*/
+             for (int i = 0; i < albums.size(); i++) {
+             albStr += get(albums, i);
+             if (i < albums.size() - 1) {
+             albStr += " + ";
+             }
+             }
+             album.set(albStr);*/
         } else {
             album.set(albums.first());
         }
-        
-        
 
-    }
-
-    public static <E> E get(Collection<E> collection, int index) {
-        Iterator<E> i = collection.iterator();
-        E element = null;
-        while (i.hasNext() && index-- >= 0) {
-            element = i.next(); 
-        }
-        return element;
     }
 
     public ObservableList<AudioProperties> getListOfAudioFiles() {
@@ -147,4 +154,5 @@ public class Medium {
     public HashMap<String, String> getYearAlbum() {
         return yearAlbum;
     }
+
 }
