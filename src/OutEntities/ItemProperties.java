@@ -77,13 +77,14 @@ public class ItemProperties {
         listOfInnerDirectories = observableArrayList();
 
         directoryName.setValue(dir.getName());
-
+        
         try {
             setAudioAttribute(hasAudio(dir));
             setImageAttribute(hasImages(dir));
             setNumOfCD(numberOfCD(dir));
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
         }
+        
     }
 
     // сканирование директории
@@ -94,6 +95,8 @@ public class ItemProperties {
         parentDir.setValue(dir);
         currentDir.setValue(dir);
         fillListsOfInnerFiles(this); //сортируем файлы в родительской папке
+        
+        
 
         out.println(getDirectoryName());
         testLists();
@@ -116,15 +119,15 @@ public class ItemProperties {
             ItemProperties ocd = new ItemProperties(child);
             ocd.setParentDir(parentDir);
             ocd.setCurrentDir(child);
-            if (getCdN() > 0) {
+            if (getCdN() > 0 && ocd.hasAudioAttribute()) {
                 cdNotProcessed--;
                 cdN = getCdN() - cdNotProcessed;
             }
+            ocd.setCdN(cdN);
             ocd.fillListsOfInnerFiles(ocd);
             childList.add(ocd);
         }
-        setCdN(cdN);
-
+        
         removeUselessChilds();
 
         attachCoversDirectory();

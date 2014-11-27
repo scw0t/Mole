@@ -21,7 +21,7 @@ import org.jaudiotagger.tag.TagException;
 
 public class ParseFactory {
 
-    private final ItemProperties itemsProps;
+    private final ItemProperties rootItem;
     private final RYMParser rymp;
     private final SimpleListProperty<Issue> issueListProperty;
     private final ObservableList<Issue> issueList;
@@ -29,10 +29,10 @@ public class ParseFactory {
 
     /**
      *
-     * @param itemsProps
+     * @param rootItem
      */
-    public ParseFactory(ItemProperties itemsProps) {
-        this.itemsProps = itemsProps;
+    public ParseFactory(ItemProperties rootItem) {
+        this.rootItem = rootItem;
         message = new SimpleStringProperty();
         issueList = observableArrayList();
         issueListProperty = new SimpleListProperty<>(issueList);
@@ -40,24 +40,46 @@ public class ParseFactory {
         rymp.setMessage(message);
     }
 
-    /**
-     *
-     */
     public void launch() {
-        if (itemsProps.hasVaAttribute()) {                      //СБОРНИК
-            if (itemsProps.getCdN() > 0) {
+        if (rootItem.hasVaAttribute()) {                      //СБОРНИК
+            if (rootItem.getCdN() > 0) {
                 //CD>1
             } else {
                 //1
             }
 
         } else {                                                //ОБЫЧНЫЙ
-            if (itemsProps.getCdN() > 0) {
-                //CD>1
-            } else {                                            //1
-                itemsProps.getMediumList().stream().forEach((medium) -> {
-                    searchCommonRelease(medium);
-                });
+            /*if (rootItem.getCdN() > 0) {                        //CD>1
+             iterateItem(rootItem);
+
+             } else {                                            //1
+             if (!rootItem.getChildList().isEmpty()) {
+             for (ItemProperties child : rootItem.getChildList()) {
+             for (Medium medium : child.getMediumList()) {
+             searchCommonRelease(medium);
+             }
+             }
+             } else {
+             for (Medium medium : rootItem.getMediumList()) {
+             searchCommonRelease(medium);
+             }
+             }
+             }*/
+            iterateItem(rootItem);
+        }
+    }
+
+    private void iterateItem(ItemProperties item) {
+        if (!item.getChildList().isEmpty()) {
+            for (ItemProperties child : item.getChildList()) {
+                if (child.hasAudioAttribute()) {
+                    searchCommonRelease(child.getMediumList().get(0));
+                    break;
+                }
+            }
+        } else {
+            if (item.hasAudioAttribute()) {
+                searchCommonRelease(item.getMediumList().get(0));
             }
         }
     }
@@ -80,7 +102,7 @@ public class ParseFactory {
                         InvalidAudioFrameException ex) {
                 }
             } else {
-
+                System.out.println("ParseFactory: artist parsing failure");
             }
         }
 

@@ -57,12 +57,11 @@ public class Controller extends BorderPane {
 
     private LogOutput logOutput;
 
-    private final String initDirPath = "I:\\Music\\!test\\";
+    private final String initDirPath = "G:\\mz\\destination";
     public static TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
-    public static TextArea logTextArea;
+    public static TextArea infoTextArea;
     public static ItemTableView<ItemModel> tableView;
-    public ObservableList<Record> testRecList;
 
     public Controller() throws FileNotFoundException {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
@@ -74,9 +73,9 @@ public class Controller extends BorderPane {
         pathTextArea = new TextField(initDirPath);
         HBox.setHgrow(pathTextArea, Priority.ALWAYS);
 
-        logTextArea = new TextArea();
-        logTextArea.setMaxHeight(Double.MAX_VALUE);
-        logTextArea.setStyle("-fx-focus-color: transparent;");
+        infoTextArea = new TextArea();
+        infoTextArea.setMaxHeight(Double.MAX_VALUE);
+        infoTextArea.setStyle("-fx-focus-color: transparent;");
 
         initDragNdropHandler();
 
@@ -112,14 +111,14 @@ public class Controller extends BorderPane {
         buttonBar.getStyleClass().setAll("segmented-button-bar");
         buttonBar.getChildren().addAll(openButton, runButton, pathTextArea);
 
-        //wrapper for =logTextArea
+        //wrapper for =infoTextArea
         VBox textAreaVbox = new VBox();
         textAreaVbox.setPadding(new Insets(10));
         textAreaVbox.setMinHeight(500);
         textAreaVbox.setMaxHeight(Double.MAX_VALUE);
-        textAreaVbox.getChildren().add(logTextArea);
+        textAreaVbox.getChildren().add(infoTextArea);
         VBox.setVgrow(textAreaVbox, Priority.ALWAYS);
-        VBox.setVgrow(logTextArea, Priority.ALWAYS);
+        VBox.setVgrow(infoTextArea, Priority.ALWAYS);
 
         tableView = new ItemTableView<ItemModel>();
 
@@ -147,9 +146,9 @@ public class Controller extends BorderPane {
             public void changed(ObservableValue<? extends ItemModel> observable,
                     ItemModel oldValue, ItemModel newValue) {
                 try {
-                    logTextArea.clear();
+                    infoTextArea.clear();
                     ItemProperties selectedRelease = tableView.getSelectionModel().getSelectedItem().getItemProperty();
-                    logTextArea.setText(buildReleaseInfo(selectedRelease));
+                    infoTextArea.setText(buildReleaseInfo(selectedRelease));
                 } catch (NullPointerException e) {
                     //System.out.println("something happend");
                 }
@@ -174,15 +173,14 @@ public class Controller extends BorderPane {
             }
         });
 
-        createTestRecordList();
     }
 
-    private String buildReleaseInfo(ItemProperties fp) {
+    private String buildReleaseInfo(ItemProperties rootItem) {
         StringBuilder infoStringBuilder = new StringBuilder();
-        if (fp.getCdN() > 0) {
-            infoStringBuilder.append(fp.getDirectoryName()).append("\n");
+        if (rootItem.getCdN() > 0) {
+            infoStringBuilder.append(rootItem.getDirectoryName()).append("\n");
 
-            for (ItemProperties childCD : fp.getChildList()) {
+            for (ItemProperties childCD : rootItem.getChildList()) {
                 for (Medium childMedium : childCD.getMediumList()) {
                     infoStringBuilder.append("#CD")
                             .append(childMedium.getCdN())
@@ -196,7 +194,7 @@ public class Controller extends BorderPane {
                 }
             }
         } else {
-            for (Medium medium : fp.getMediumList()) {
+            for (Medium medium : rootItem.getMediumList()) {
                 infoStringBuilder.append(medium.getArtist())
                         .append(" - ")
                         .append(medium.getAlbum())
@@ -360,10 +358,12 @@ public class Controller extends BorderPane {
         }
     }
 
+    //TODO: вынести в отдельный класс, чтобы использовать его в классе CListView
+    //для обновления списка
     class ParseTask extends Task<ObservableList<CModel>> {
 
         private ParseFactory parseFactory;
-
+        
         @Override
         protected ObservableList<CModel> call() throws Exception {
             ObservableList<CModel> resultList = FXCollections.observableArrayList();
@@ -398,65 +398,4 @@ public class Controller extends BorderPane {
         }
 
     }
-
-    private void createTestRecordList() {
-        Artist a1 = new Artist("The Who");
-        a1.setCountry("UK");
-        Artist a2 = new Artist("Jimi hendrix");
-        a2.setCountry("USA");
-
-        Issue i1 = new Issue();
-        i1.setIssueTitle("Issue1");
-        i1.setIssueAttributes("CD, Remastered");
-        i1.setIssueCountries("USA");
-        i1.setIssueYear("1968");
-        i1.setIssueLabel("decca");
-        i1.setCatNumber("I123");
-
-        Issue i2 = new Issue();
-        i2.setIssueTitle("Issue2");
-        i2.setIssueAttributes("Vinil");
-        i2.setIssueCountries("Belgium");
-        i2.setIssueYear("1970");
-        i2.setIssueLabel("RCA");
-        i2.setCatNumber("rc64-541");
-
-        Issue i3 = new Issue();
-        i3.setIssueTitle("Issue3");
-        i3.setIssueAttributes("SDCD");
-        i3.setIssueCountries("Zambia");
-        i3.setIssueYear("1971");
-        i3.setIssueLabel("radioactive");
-        i3.setCatNumber("RA-1542");
-
-        Issue i4 = new Issue();
-        i4.setIssueTitle("Issue4");
-        i4.setIssueAttributes("Vinil 12''");
-        i4.setIssueCountries("Russia");
-        i4.setIssueYear("1975");
-        i4.setIssueLabel("EMI");
-        i4.setCatNumber("8-4546-451-474");
-
-        ArrayList<Issue> issueList1 = new ArrayList<>();
-        issueList1.add(i1);
-        issueList1.add(i2);
-
-        ArrayList<Issue> issueList2 = new ArrayList<>();
-        issueList2.add(i3);
-        issueList2.add(i4);
-
-        Record r1 = new Record("My Generation");
-        r1.setArtist(a1);
-        r1.setIssues(issueList1);
-
-        Record r2 = new Record("Experience");
-        r2.setArtist(a2);
-        r2.setIssues(issueList2);
-
-        testRecList = FXCollections.observableArrayList();
-        testRecList.add(r1);
-        testRecList.add(r2);
-
-    }
-
 }

@@ -1,7 +1,6 @@
 package Entities;
 
 import static java.lang.System.out;
-import java.util.logging.Logger;
 
 public class Issue {
 

@@ -16,6 +16,7 @@ import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 import static java.util.regex.Pattern.quote;
 import javafx.beans.property.StringProperty;
+import org.jsoup.Jsoup;
 import static org.jsoup.Jsoup.connect;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -72,31 +73,124 @@ public class RYMParser {
     public boolean parseArtistInfo(String inputArtistName) {
         boolean parsed = false;
         try {
-            Document doc = connect(rymArtistUrl + validateUrl(inputArtistName))
+            Document doc = Jsoup.connect(rymArtistUrl + validateUrl(inputArtistName))
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                    .timeout(20_000).get();
+                    .timeout(20000).get();
             Element contentTable = doc.getElementsByClass("artist_info").first();
+            
+            System.out.println("Parsing: " + rymArtistUrl + validateUrl(inputArtistName));
+
+            String pattern = "\\d{4}-(\\d{2,4}|present)|\\d{4}";
+            Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
 
             rymArtistName = doc.getElementsByClass("artist_name_hdr").first().text();
+
             currentArtist = new Artist(rymArtistName);
 
-            message.setValue("Search artist: " + inputArtistName);
-
             if (contentTable != null) {
+                System.out.println("-----------------------------------------------------");
                 for (int i = 0; i < contentTable.select("td").size(); i++) {
                     Element subTable = contentTable.select("td").get(i);
                     Element subDiv = subTable.getElementsByClass("info_hdr").first();
                     if (subDiv != null) {
+                        switch (subDiv.text()) {
+                            case "Formed": {
+                                System.out.println("-----Formed-----");
+                                String cleanedString = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
+                                currentArtist.setFormedDate(parseDate(cleanedString)[0]);
+                                currentArtist.setCountry(parseDate(cleanedString)[1]);
+                                break;
+                            }
+                            case "Born": {
+                                System.out.println("-----Born-----");
+                                String cleanedString = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
+                                currentArtist.setFormedDate(parseDate(cleanedString)[0]);
+                                currentArtist.setCountry(parseDate(cleanedString)[1]);
+                                break;
+                            }
+                            case "Disbanded":
+                                System.out.println("-----Disbanded-----");
+                                String cleanedString = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
+                                currentArtist.setDiedDate(parseDate(cleanedString)[0]);
+                                break;
+                            case "Died":
+                                System.out.println("-----Died-----");
+                                String cs = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "");
+                                currentArtist.setDiedDate(parseDate(cs)[0]);
+                                break;
+                            case "Members":
+                                System.out.println("-----Members-----");
+                                String[] splitSubstrings = subTable.html().split(" <br /> <br />");
+                                String membersString = "";
+                                Document subdoc = Jsoup.parse(splitSubstrings[0]);
+                                Element subMembers = subdoc.body();
+                                membersString = subMembers.text().replace(subDiv.text() + " ", "");
+                                currentArtist.setMembers(parseMembers(membersString));
+                                break;
+                            case "Member of":
+                                System.out.println("-----Member of-----");
+                                ArrayList<Artist> membersList = new ArrayList<>();
+                                String memberOf[] = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "").split(", ");
+                                for (int j = 0; j < memberOf.length; j++) {
+                                    if (j == 0) {
+                                        memberOf[j] = memberOf[j].replace(subDiv.text(), "");
+                                    }
+                                    membersList.add(new Artist(memberOf[j]));
+                                }
+                                currentArtist.setMemberOf(membersList);
+                                break;
+                            case "Related Artists":
+                                System.out.println("-----Related Artists-----");
+                                ArrayList<Artist> relatedList = new ArrayList<>();
+                                String related[] = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "").split(", ");
+                                for (int j = 0; j < related.length; j++) {
+                                    if (j == 0) {
+                                        related[j] = related[j].replace(subDiv.text(), "");
+                                    }
+                                    relatedList.add(new Artist(related[j]));
+                                }
+                                currentArtist.setRelated(relatedList);
+                                break;
+                            case "Also Known As":
+                                System.out.println("-----Also Known As-----");
+                                ArrayList<String> akaList = new ArrayList<>();
+                                String aka[] = subTable.text().replace(subDiv.text() + " ", "").replace(subDiv.text(), "").split(", ");
+                                for (int j = 0; j < aka.length; j++) {
+                                    if (j == 0) {
+                                        aka[j] = aka[j].replace(subDiv.text(), "");
+                                    }
+                                    akaList.add(aka[j]);
+                                }
+                                currentArtist.setAka(akaList);
+                                break;
+                            case "Genres":
+                                System.out.println("-----Genres-----");
+                                ArrayList<Genre> artistGenres = new ArrayList<>();
+                                Elements genreElements = subTable.getElementsByClass("genre");
+                                for (Element element : genreElements) {
+                                    if (!element.text().equals("Rock")) {
+                                        Genre genre = new Genre();
+                                        genre.setName(element.text());
+                                        genre.setLink(element.attr("href"));
+                                        artistGenres.add(genre);
+                                    }
+                                }
+                                currentArtist.setGenres(artistGenres);
+                                break;
+                        }
+
                     }
                 }
                 parseArtistDiscography(doc);
                 parsed = true;
             } else {
+                System.out.println("На сайте произошли какие-то изменения. Check this out.");
             }
 
         } catch (IOException ex) {
+            System.out.println("URL. Status=404");
             parsed = false;
-        }
+        } 
         return parsed;
     }
 
@@ -121,6 +215,8 @@ public class RYMParser {
                         .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                         .timeout(20_000).get();
             }
+            
+            System.out.println("Parsing: " + currentAlbumUrl);
 
             Element contentTable = doc.getElementsByClass("album_info").first();
 
@@ -367,6 +463,7 @@ public class RYMParser {
             Document doc = connect(currentAlbumUrl)
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20_000).get();
+            System.out.println("Parsing: " + currentAlbumUrl);
 
             setCurrentRecord(new Record());
 
@@ -1139,15 +1236,6 @@ public class RYMParser {
 
     /**
      *
-     * @param inputAlbumName
-     */
-    public void setInputAlbumNameAndInitUrl(String inputAlbumName) {
-        this.inputAlbumName = inputAlbumName;
-        setCurrentAlbumUrl(rymAlbumUrl + validateUrl(inputAlbumName) + "/" + validateUrl(inputAlbumName));
-    }
-
-    /**
-     *
      * @return
      */
     public String getInputArtistName() {
@@ -1161,6 +1249,15 @@ public class RYMParser {
     public void setInputArtistNameAndInitUrl(String inputArtistName) {
         this.inputArtistName = inputArtistName;
         setCurrentArtistUrl(rymArtistUrl + validateUrl(inputArtistName));
+    }
+    
+    /**
+     *
+     * @param inputAlbumName
+     */
+    public void setInputAlbumNameAndInitUrl(String inputAlbumName) {
+        this.inputAlbumName = inputAlbumName;
+        setCurrentAlbumUrl(rymAlbumUrl + validateUrl(inputArtistName) + "/" + validateUrl(inputAlbumName));
     }
 
     /**

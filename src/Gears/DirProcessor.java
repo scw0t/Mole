@@ -59,7 +59,9 @@ public class DirProcessor {
 
     private void removeExcessDirs(File dir) {
         try {
-            if ((!hasAudio(dir) && numberOfCD(dir) == 0) && !hasInnerFolder(dir)) {
+            int cdN = numberOfCD(dir);
+            
+            if ((!hasAudio(dir) && cdN == 0) && !hasInnerFolder(dir)) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().contains(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);
@@ -67,7 +69,7 @@ public class DirProcessor {
                 }
             }
 
-            if (!hasAudio(dir) && numberOfCD(dir) == 0 && hasInnerFolder(dir)) {
+            if (!hasAudio(dir) && cdN == 0 && hasInnerFolder(dir)) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);
@@ -76,7 +78,7 @@ public class DirProcessor {
                 }
             }
 
-            if (hasAudio(dir) && numberOfCD(dir) == 0 && numberOfCD(dir.getParentFile()) > 0) {
+            if (hasAudio(dir) && cdN == 0 && numberOfCD(dir.getParentFile()) > 0) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);

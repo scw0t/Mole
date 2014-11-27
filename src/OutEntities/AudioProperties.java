@@ -56,7 +56,7 @@ public class AudioProperties {
 
         try {
             audioFile = (MP3File) AudioFileIO.read(file);
-            
+
             if (audioFile.getTag() == null) {
                 audioFile.setTag(new ID3v24Tag());
                 try {
@@ -64,42 +64,41 @@ public class AudioProperties {
                 } catch (CannotWriteException ex) {
                     Logger.getLogger(AudioProperties.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                        
+
             }
-            
+
             if (!audioFile.getTag().getFirst(FieldKey.ARTIST).equals("")) {
                 artistTitle.setValue(audioFile.getTag().getFirst(FieldKey.ARTIST));
             } else {
                 artistTitle.setValue("Unknown Artist");
             }
-            
+
             if (!audioFile.getTag().getFirst(FieldKey.ALBUM).equals("")) {
                 albumTitle.setValue(audioFile.getTag().getFirst(FieldKey.ALBUM));
             } else {
                 albumTitle.setValue("Unknown Album");
             }
-            
+
             if (!audioFile.getTag().getFirst(FieldKey.TITLE).equals("")) {
                 trackTitle.setValue(audioFile.getTag().getFirst(FieldKey.TITLE));
             } else {
                 trackTitle.setValue("Unknown Title");
             }
-            
+
             trackNumber.setValue(String.valueOf(fileNum));
             /*if (!audioFile.getTag().getFirst(FieldKey.TRACK).equals("")) {
-                trackNumber.setValue(audioFile.getTag().getFirst(FieldKey.TRACK));
-            } else {
-                trackNumber.setValue(String.valueOf(fileNum));
-            }*/
-            
-            
+             trackNumber.setValue(audioFile.getTag().getFirst(FieldKey.TRACK));
+             } else {
+             trackNumber.setValue(String.valueOf(fileNum));
+             }*/
+
             //Определение года
             if (!audioFile.getTag().getFirst(FieldKey.YEAR).equals("")) {
                 year.setValue(audioFile.getTag().getFirst(FieldKey.YEAR));
             } else {
                 year.setValue("xxxx");
             }
-            
+
             //Определение номера CD
             String cdNStr = audioFile.getTag().getFirst(FieldKey.DISC_NO);
             if (!"".equals(cdNStr)) {
@@ -112,7 +111,7 @@ public class AudioProperties {
             } else {
                 cd_n.set(0);
             }
-            
+
             //Определение списка жанров
             ObservableList<String> genresList = FXCollections.observableArrayList();
             String[] genresArr = audioFile.getTag().getFirst(FieldKey.GENRE).split(genreDelimiters[0]);
@@ -124,7 +123,7 @@ public class AudioProperties {
                 genresList.add(audioFile.getTag().getFirst(FieldKey.GENRE));
             }
             genres.set(genresList);
-            
+
             //Наличие обложки
             if (!audioFile.getTag().getArtworkList().isEmpty()) {
                 hasArtwork.setValue(true);
@@ -139,26 +138,7 @@ public class AudioProperties {
     public AudioProperties(File file) {
         this.file = file;
         fileName = new SimpleStringProperty(this, "fileName");
-        /*artistTitle = new SimpleStringProperty(this, "artistTitle");
-        albumTitle = new SimpleStringProperty(this, "albumTitle");
-        trackNumber = new SimpleStringProperty(this, "trackNumber");
-        trackTitle = new SimpleStringProperty(this, "trackTitle");
-        year = new SimpleStringProperty(this, "year");
-        cd_n = new SimpleIntegerProperty(this, "cd_n");
-        genres = new SimpleListProperty(this, "genres");
-        hasArtwork = new SimpleBooleanProperty(this, "hasArtwork");
-
-        fileName.setValue(file.getName());
-        
-        try {
-            audioFile = (MP3File) AudioFileIO.read(file);
-        } catch (CannotReadException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException ex) {
-            System.out.println("Ошибка чтения файла " + file.getAbsolutePath());
-        }*/
-        
     }
-    
-    
 
     public File getFile() {
         return file;

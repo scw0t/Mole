@@ -43,7 +43,7 @@ public class Mole extends Application {
         Scene scene = new Scene(new Controller(), 650, 900);
         scene.getStylesheets().add(getClass().getResource("toolbarStyle.css").toExternalForm());
 
-        primaryStage.setTitle("hi!");
+        primaryStage.setTitle("Mole v0.1");
         primaryStage.setScene(scene);
         primaryStage.setOnCloseRequest((WindowEvent event) -> {
             exit();
