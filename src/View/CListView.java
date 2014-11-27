@@ -83,6 +83,7 @@ public class CListView extends Stage {
                         finalProcess.launch();
                     } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
                         System.out.println("Final process exception");
+                        ex.printStackTrace();
                     }
                 }
             }
@@ -126,11 +127,11 @@ public class CListView extends Stage {
 
         BorderPane borderPane = new BorderPane();
         borderPane.setPadding(new Insets(10));
-        borderPane.setTop(topFieldsVBox());
+        //borderPane.setTop(topFieldsVBox());
         borderPane.setCenter(listVBox);
         borderPane.setBottom(bottomVBox);
 
-        setScene(new Scene(borderPane, 500, 400));
+        setScene(new Scene(borderPane, 600, 500));
     }
 
     private HBox topFieldsVBox() {
@@ -211,6 +212,12 @@ public class CListView extends Stage {
             labelCol = new TableColumn<>("Label");
             catCol = new TableColumn<>("Cat#");
             countryCol = new TableColumn<>("Country");
+            
+            titleCol.prefWidthProperty().bind(widthProperty().multiply(0.25));
+            yearCol.prefWidthProperty().bind(widthProperty().multiply(0.1));
+            labelCol.prefWidthProperty().bind(widthProperty().multiply(0.25));
+            catCol.prefWidthProperty().bind(widthProperty().multiply(0.2));
+            countryCol.prefWidthProperty().bind(widthProperty().multiply(0.2));
 
             titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
             yearCol.setCellValueFactory(new PropertyValueFactory<>("year"));

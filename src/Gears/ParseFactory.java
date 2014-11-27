@@ -70,12 +70,19 @@ public class ParseFactory {
     }
 
     private void iterateItem(ItemProperties item) {
+        boolean passed = false;
+        
         if (!item.getChildList().isEmpty()) {
             for (ItemProperties child : item.getChildList()) {
                 if (child.hasAudioAttribute()) {
                     searchCommonRelease(child.getMediumList().get(0));
+                    passed = true;
                     break;
                 }
+            }
+            
+            if (!passed && !item.getMediumList().isEmpty()) {
+                searchCommonRelease(item.getMediumList().get(0));
             }
         } else {
             if (item.hasAudioAttribute()) {
