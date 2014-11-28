@@ -718,4 +718,12 @@ public class FinalProcess {
      }
      return true;
      }*/
+
+    public ItemProperties getRootItem() {
+        return rootItem;
+    }
+
+    public RYMParser getRymp() {
+        return rymp;
+    }
 }

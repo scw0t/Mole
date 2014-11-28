@@ -1,22 +1,18 @@
 package View;
 
-import Entities.Artist;
-import Entities.Issue;
-import Entities.Record;
 import Gears.DirProcessor;
 import Gears.FinalProcess;
 import Gears.LogOutput;
 import Gears.ParseFactory;
+import Gears.ParseTask;
 import OutEntities.AudioProperties;
 import OutEntities.ItemProperties;
 import OutEntities.IncomingDirectory;
 import OutEntities.Medium;
-import View.CListView.CModel;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
@@ -323,7 +319,7 @@ public class Controller extends BorderPane {
                             ParseFactory parseFactory = new ParseFactory(item.getItemProperty());
                             FinalProcess finalProcess = new FinalProcess(item.getItemProperty());
                             finalProcess.setRymp(parseFactory.getRymp());
-
+                            
                             ParseTask parseTask = new ParseTask();
                             parseTask.setParseFactory(parseFactory);
 
@@ -332,70 +328,18 @@ public class Controller extends BorderPane {
                             cListView.getcTable().itemsProperty().bind(parseTask.valueProperty());
                             cListView.getIndicator().progressProperty().bind(parseTask.progressProperty());
                             cListView.getStateLabel().textProperty().bind(parseTask.messageProperty());
-
-                            //runAndWait(parserTask);
+                            cListView.getAlbumTextField().textProperty().bindBidirectional(parseTask.getAlbumProperty());
+                            cListView.getArtistTextField().textProperty().bindBidirectional(parseTask.getArtistProperty());
+                            cListView.getTypeTextField().textProperty().bindBidirectional(parseTask.getTypeProperty());
+                            
                             new Thread(parseTask).start();
                             cListView.showAndWait();
                         }
                     }
                 }
-
-                /*if (!testRecList.isEmpty() && testRecList != null) {
-                 for (Record rec : testRecList) {
-                 CListView cListView = new CListView();
-                 cListView.setContent(rec.getIssues());
-                 cListView.showAndWait();
-                 if (cListView.isTerminated()) {
-                 break;
-                 }
-                 }
-                 } else {
-                 System.out.println("trl = null");
-                 }*/
             });
 
             return null;
         }
-    }
-
-    //TODO: вынести в отдельный класс, чтобы использовать его в классе CListView
-    //для обновления списка
-    class ParseTask extends Task<ObservableList<CModel>> {
-
-        private ParseFactory parseFactory;
-        
-        @Override
-        protected ObservableList<CModel> call() throws Exception {
-            ObservableList<CModel> resultList = FXCollections.observableArrayList();
-
-            parseFactory.getMessageProperty().addListener((ObservableValue<? extends String> observable, String oldValue, String newValue) -> {
-                updateMessage(newValue);
-            });
-
-            try {
-                parseFactory.launch();
-                if (parseFactory.getIssueList().isEmpty()) {
-                    updateMessage("Nothing founded");
-                } else {
-                    updateMessage("Searching complete");
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                updateProgress(1.0f, 1.0f);
-            }
-
-            for (Issue issue : parseFactory.getIssueList()) {
-                resultList.add(new CModel(issue));
-            }
-
-            return resultList;
-        }
-
-        public void setParseFactory(ParseFactory parseFactory) {
-            this.parseFactory = parseFactory;
-        }
-
     }
 }

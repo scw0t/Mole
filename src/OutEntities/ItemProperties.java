@@ -30,7 +30,7 @@ import org.jaudiotagger.tag.TagException;
 //Сущность, систематизирующая папки релиза, предназначенные для обработки и исключающая из нее лишние файлов 
 public class ItemProperties {
 
-    private final File dir;
+    private File dir;
 
     private int cdN;
     private ObservableList<Medium> mediumList;
@@ -43,15 +43,16 @@ public class ItemProperties {
     private ObservableList<File> listOfImageFiles; //список изображений
     private ObservableList<File> listOfOtherFiles; //список других файлов
 
-    private final SimpleStringProperty directoryName; //Имя директории
-    private final SimpleBooleanProperty audioAttribute; //Наличие аудио
-    private final SimpleIntegerProperty cdNAttribute; //наличие нескольких дисков
-    private final SimpleBooleanProperty imageAttribute; //наличие картинок
-    private final SimpleBooleanProperty vaAttribute; //признак сборника
-    private final SimpleBooleanProperty innerDirectoryAttribute; //наличие поддиректории с изображениями
+    private SimpleStringProperty directoryName; //Имя директории
+    private SimpleBooleanProperty audioAttribute; //Наличие аудио
+    private SimpleIntegerProperty cdNAttribute; //наличие нескольких дисков
+    private SimpleBooleanProperty imageAttribute; //наличие картинок
+    private SimpleBooleanProperty vaAttribute; //признак сборника
+    private SimpleBooleanProperty innerDirectoryAttribute; //наличие поддиректории с изображениями
     private ObservableList<File> listOfInnerDirectories;
 
-    //принимает директорию из parsedDirList
+    private ItemProperties item;
+
     /**
      *
      * @param dir
@@ -77,32 +78,32 @@ public class ItemProperties {
         listOfInnerDirectories = observableArrayList();
 
         directoryName.setValue(dir.getName());
-        
+
         try {
             setAudioAttribute(hasAudio(dir));
             setImageAttribute(hasImages(dir));
             setNumOfCD(numberOfCD(dir));
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
         }
-        
+    }
+
+    public ItemProperties(ItemProperties another) {
+        this.item = another.item; // you can access  
     }
 
     // сканирование директории
     // добавление потомков
-    
     public void lookForChildEntities() {
         parentDir = new SimpleObjectProperty<>(this, "parentDir"); //инициализируем родителя при сканировании нового кластера
         parentDir.setValue(dir);
         currentDir.setValue(dir);
         fillListsOfInnerFiles(this); //сортируем файлы в родительской папке
-        
-        
 
         out.println(getDirectoryName());
         testLists();
 
         addChilds();
-        
+
         System.out.println("------------------");
 
     }
@@ -127,18 +128,10 @@ public class ItemProperties {
             ocd.fillListsOfInnerFiles(ocd);
             childList.add(ocd);
         }
-        
+
         removeUselessChilds();
 
         attachCoversDirectory();
-
-        //?
-        /*for (ItemProperties child : childList) {
-         child.fillListsOfInnerFiles(child.getCurrentDir().getValue());
-         System.out.print("└-");
-         System.out.println(child.getCurrentDir().getValue().getName());
-         child.testLists();
-         }*/
     }
 
     /**
@@ -146,7 +139,6 @@ public class ItemProperties {
      * @param fp
      */
     public void fillListsOfInnerFiles(ItemProperties fp) {
-        //System.out.println(dir.getName());
         File currDirectory = fp.getCurrentDir().getValue();
         int audioNum = 0;
         if (currDirectory.isDirectory()) {
@@ -178,11 +170,6 @@ public class ItemProperties {
     }
 
     private boolean removeUselessChilds() {
-        if (hasAudioAttribute()) {
-            //System.out.println("Parent: + | " + getParentDir().getValue().getAbsolutePath());
-        } else {
-            //System.out.println("Parent: - | " + getParentDir().getValue().getAbsolutePath());
-        }
         for (int i = 0; i < childList.size(); i++) {
             if (childList.get(i).hasAudioAttribute()) {
                 //System.out.println("Child: A+ | " + childList.get(i).getCurrentDir().getValue().getAbsolutePath());
@@ -194,7 +181,6 @@ public class ItemProperties {
             }
         }
 
-        //System.out.println("-----------------");
         return true;
     }
 
@@ -228,6 +214,24 @@ public class ItemProperties {
             });
             if (!listOfInnerDirectories.isEmpty()) {
                 innerDirectoryAttribute.setValue(TRUE);
+            }
+        }
+    }
+
+    public void refreshData(String artist, String album, String type) {
+        if (childList.isEmpty()) {
+            for (Medium medium : mediumList) {
+                medium.setAlbum(album);
+                medium.setArtist(artist);
+                medium.setType(type);
+            }
+        } else {
+            for (ItemProperties child : childList) {
+                for (Medium medium : child.getMediumList()) {
+                    medium.setAlbum(album);
+                    medium.setArtist(artist);
+                    medium.setType(type);
+                }
             }
         }
     }

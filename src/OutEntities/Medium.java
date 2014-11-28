@@ -30,6 +30,7 @@ public class Medium {
     private final SimpleStringProperty artist;
     private final SimpleStringProperty year;
     private final SimpleStringProperty genres;
+    private SimpleStringProperty type;
     private final SimpleBooleanProperty hasArtwork;
     private final HashMap<String, String> yearAlbum;
 
@@ -155,4 +156,11 @@ public class Medium {
         return yearAlbum;
     }
 
+    public String getType() {
+        return type.getValue();
+    }
+
+    public void setType(String type) {
+        this.type.setValue(type);
+    }
 }

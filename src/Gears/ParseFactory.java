@@ -92,16 +92,19 @@ public class ParseFactory {
     }
 
     private void searchCommonRelease(Medium medium) {
+        boolean passed = false;
         rymp.setInputArtistNameAndInitUrl(medium.getArtist());
         rymp.setInputAlbumNameAndInitUrl(medium.getAlbum());
 
         //поиск по имени релиза
         if (rymp.parseAlbumInfo()) {
             rymp.parseArtistInfo(rymp.getRymArtistName());
+            passed = true;
         } else {
             if (rymp.parseArtistInfo(medium.getArtist())) {
                 try {
                     checkDiscography();
+                    passed = true;
                 } catch (KeyNotFoundException |
                         IOException |
                         TagException |
@@ -117,6 +120,10 @@ public class ParseFactory {
             if (rymp.getCurrentRecord().getIssues() != null && !rymp.getCurrentRecord().getIssues().isEmpty()) {
                 issueList.addAll(rymp.getCurrentRecord().getIssues());
             }
+        }
+        
+        if (rymp.getCurrentRecord() != null) {
+            medium.setType(rymp.getCurrentRecord().getType());
         }
     }
 

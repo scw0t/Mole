@@ -77,7 +77,7 @@ public class RYMParser {
                     .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                     .timeout(20000).get();
             Element contentTable = doc.getElementsByClass("artist_info").first();
-            
+
             System.out.println("Parsing: " + rymArtistUrl + validateUrl(inputArtistName));
 
             String pattern = "\\d{4}-(\\d{2,4}|present)|\\d{4}";
@@ -86,6 +86,7 @@ public class RYMParser {
             rymArtistName = doc.getElementsByClass("artist_name_hdr").first().text();
 
             currentArtist = new Artist(rymArtistName);
+            currentArtist.setLink(currentArtistUrl);
 
             if (contentTable != null) {
                 System.out.println("-----------------------------------------------------");
@@ -190,7 +191,7 @@ public class RYMParser {
         } catch (IOException ex) {
             System.out.println("URL. Status=404");
             parsed = false;
-        } 
+        }
         return parsed;
     }
 
@@ -215,13 +216,18 @@ public class RYMParser {
                         .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
                         .timeout(20_000).get();
             }
-            
+
             System.out.println("Parsing: " + currentAlbumUrl);
 
-            Element contentTable = doc.getElementsByClass("album_info").first();
+            currentRecord = new Record();
+            currentRecord.setLink(currentAlbumUrl);
+            Element titleElement = doc.getElementsByClass("album_title").first();
+            if (titleElement != null) {
+                currentRecord.setName(titleElement.text());
+            }
 
+            Element contentTable = doc.getElementsByClass("album_info").first();
             if (contentTable != null) {
-                setCurrentRecord(new Record());
                 for (int i = 0; i < contentTable.select("tr").size(); i++) {
                     Element subTableHeader = contentTable.select("th").get(i);
                     if (subTableHeader != null) {
@@ -1250,7 +1256,7 @@ public class RYMParser {
         this.inputArtistName = inputArtistName;
         setCurrentArtistUrl(rymArtistUrl + validateUrl(inputArtistName));
     }
-    
+
     /**
      *
      * @param inputAlbumName
