@@ -83,17 +83,20 @@ public class FinalProcess {
             if (rootItem.getChildList().isEmpty()) {
                 for (Medium medium : rootItem.getMediumList()) {
                     fixTags(medium);
+                    renameAudio(medium);
                 }
             } else {
                 if (!rootItem.getMediumList().isEmpty()) {
                     for (Medium medium : rootItem.getMediumList()) {
                         fixTags(medium);
+                        renameAudio(medium);
                     }
                 }
 
                 for (ItemProperties child : rootItem.getChildList()) {
                     for (Medium medium : child.getMediumList()) {
                         fixTags(medium);
+                        renameAudio(medium);
                     }
                 }
             }
@@ -157,6 +160,12 @@ public class FinalProcess {
                 if (audio.getCdN() == 0 && rootItem.getCdN() > 0) {
                     file.getTag().setField(DISC_NO, Integer.toString(medium.getCdN()));
                 }
+            } else {
+                if (file.getTag().getFirst(DISC_NO).equals("1") || file.getTag().getFirst(DISC_NO).equals("1/1")) {
+                    file.getTag().setField(DISC_NO, "");
+                } else if (file.getTag().getFirst(DISC_NO).contains("/")) {
+                    file.getTag().setField(DISC_NO, file.getTag().getFirst(DISC_NO).replaceAll("\\/\\S+", ""));
+                }
             }
 
             //Запись тега ARTIST
@@ -186,6 +195,10 @@ public class FinalProcess {
                     file.getTag().setField(YEAR, outputAlbumYearValue);
                 }
             }
+            
+            if (file.getTag().getFirst(YEAR).contains("//")) {
+                file.getTag().setField(YEAR, file.getTag().getFirst(YEAR).replaceAll("\\/\\S+", ""));
+            }
 
             //Запись тега GENRE
             if (!outputRecordGenresValue.isEmpty()) {
@@ -201,6 +214,23 @@ public class FinalProcess {
             if (selectedIssue != null) {
                 //Запись тега ALBUM
                 if (selectedIssue.getIssueTitle() != null) {
+                    /*String value = selectedIssue.getIssueTitle();
+                     Map map = Charset.availableCharsets();
+                     Iterator it = map.keySet().iterator();
+                     while (it.hasNext()) {
+                     // Get charset name
+                     String charsetName = (String) it.next();
+                     // Get charset
+                     Charset charset = Charset.forName(charsetName);
+                     try {
+                     byte[] b = value.getBytes(charsetName);
+                     value = new String(b, "UTF-8");
+                     System.out.println("charsetName=" + charsetName + "; value =" + value);
+                     } catch (Exception e) {
+                     System.out.println("Is not " + charsetName + "; message:" + e.getMessage());
+                     }
+                     }*/
+
                     file.getTag().setField(ALBUM, selectedIssue.getIssueTitle());
                 }
 
@@ -208,6 +238,7 @@ public class FinalProcess {
                 if (selectedIssue.getIssueLabel() != null) {
                     if (!selectedIssue.getIssueLabel().equals("Unknown")) {
                         file.getTag().setField(RECORD_LABEL, selectedIssue.getIssueLabel());
+
                     }
                 }
 
@@ -292,6 +323,7 @@ public class FinalProcess {
         }
         if (!renamedAudioList.isEmpty()) {
             medium.setAudioList(renamedAudioList);
+            medium.getCurrentItem().setListOfAudioFiles(renamedAudioList);
         }
     }
 
@@ -328,27 +360,10 @@ public class FinalProcess {
     private String buildAlbumString() {
         StringBuilder albumString = new StringBuilder();
 
-        if (!rootItem.getChildList().isEmpty()) {
+        if (!rootItem.getChildList().isEmpty() && rootItem.getMediumList().isEmpty()) {
             for (ItemProperties child : rootItem.getChildList()) {
                 for (Medium medium : child.getMediumList()) {
-                    if (rootItem.hasVaAttribute()) { //если VA
-                        albumString.append("VA")
-                                .append(" - ")
-                                .append(medium.getAlbum())
-                                .append(" (")
-                                .append(medium.getYear())
-                                .append(")");
-                    } else { //если обычный релиз
-                        if (selectedIssue != null) { //если выбрано издание
-                            albumString.append(selectedIssue.getIssueYear())
-                                    .append(" - ")
-                                    .append(selectedIssue.getIssueTitle());
-                        } else { //если ничего не выбрано
-                            albumString.append(medium.getYear())
-                                    .append(" - ")
-                                    .append(medium.getAlbum());
-                        }
-                    }
+                    fillAlbumString(albumString, medium);
                 }
                 if (rootItem.getCdN() > 0) {
                     break;
@@ -356,24 +371,7 @@ public class FinalProcess {
             }
         } else {
             for (Medium medium : rootItem.getMediumList()) {
-                if (rootItem.hasVaAttribute()) { //если VA
-                    albumString.append("VA")
-                            .append(" - ")
-                            .append(medium.getAlbum())
-                            .append(" (")
-                            .append(medium.getYear())
-                            .append(")");
-                } else { //если обычный релиз
-                    if (selectedIssue != null) { //если выбрано издание
-                        albumString.append(selectedIssue.getIssueYear())
-                                .append(" - ")
-                                .append(selectedIssue.getIssueTitle());
-                    } else { //если ничего не выбрано
-                        albumString.append(medium.getYear())
-                                .append(" - ")
-                                .append(medium.getAlbum());
-                    }
-                }
+                fillAlbumString(albumString, medium);
             }
         }
 
@@ -382,6 +380,40 @@ public class FinalProcess {
         }
 
         return albumString.toString();
+    }
+
+    private void fillAlbumString(StringBuilder albumString, Medium medium) {
+        String year = "";
+        if (medium.getYear() == null || medium.getYear().equals("")) {
+            year = rymp.getCurrentRecord().getYearRecorded();
+        } else {
+            year = medium.getYear();
+        }
+        if (rootItem.hasVaAttribute()) { //если VA
+            albumString.append("VA")
+                    .append(" - ")
+                    .append(validateName(medium.getAlbum()))
+                    .append(" (")
+                    .append(year)
+                    .append(")");
+        } else { //если обычный релиз
+            if (selectedIssue != null) { //если выбрано издание
+                albumString.append(year)
+                        .append(" - ")
+                        .append(validateName(selectedIssue.getIssueTitle()))
+                        .append(" [")
+                        .append(selectedIssue.getIssueYear())
+                        .append(", ")
+                        .append(validateName(selectedIssue.getIssueLabel()))
+                        .append(", ")
+                        .append(validateName(selectedIssue.getCatNumber()))
+                        .append("]");
+            } else { //если ничего не выбрано
+                albumString.append(year)
+                        .append(" - ")
+                        .append(validateName(medium.getAlbum()));
+            }
+        }
     }
 
     private void moveFactory(ItemProperties item) throws KeyNotFoundException,
@@ -394,7 +426,7 @@ public class FinalProcess {
 
         int cdN = 0;
 
-        if (item.getMediumList().size() == 1) {
+        if (item.getMediumList().size() > 1) {
             cdN = findCdN(item.getMediumList().get(0));
         } else if (item.getMediumList().size() > 1) {
             System.out.println("Unhandeled case: getMediumList().size() > 1");
@@ -492,11 +524,11 @@ public class FinalProcess {
     private void removeJunkFiles(ObservableList<File> listOfOtherFiles) {
         for (int i = 0; i < listOfOtherFiles.size(); i++) {
             String extention = getExtension(listOfOtherFiles.get(i).getName());
-            if (extention.equals("log")
-                    || extention.equals("cue")
-                    || extention.equals("db")
-                    || extention.equals("m3u")
-                    || extention.equals("accurip")) {
+            if (extention.toLowerCase().equals("log")
+                    || extention.toLowerCase().equals("cue")
+                    || extention.toLowerCase().equals("db")
+                    || extention.toLowerCase().equals("m3u")
+                    || extention.toLowerCase().equals("accurip")) {
                 listOfOtherFiles.get(i).delete();
                 listOfOtherFiles.remove(i);
             }
@@ -505,7 +537,7 @@ public class FinalProcess {
 
     private void move(File from, File to) {
         try {
-            if (!to.exists()) {
+            if (to.exists()) {
                 if (from.isDirectory()) {
                     FileUtils.moveDirectoryToDirectory(from, to, false);
                 } else {
@@ -514,6 +546,7 @@ public class FinalProcess {
             }
         } catch (IOException e) {
             System.out.println("move() exception\nFrom " + from + "\nTo " + to);
+            //e.printStackTrace();
         }
     }
 
@@ -568,13 +601,16 @@ public class FinalProcess {
 
     public void removeFileAndParentsIfEmpty(Path path)
             throws IOException {
-        if (path == null || path.endsWith(rootItem.getParentDir().getValue().getParentFile().getPath())) {
+        String rootPath = rootItem.getParentDir().getValue().getAbsolutePath().charAt(0) + ":\\";
+        if (path == null || path.endsWith(rootPath)) {
             return;
         }
 
         if (Files.isDirectory(path)) {
             try {
-                Files.delete(path);
+                if (Files.exists(path)) {
+                    Files.delete(path);
+                }
             } catch (DirectoryNotEmptyException e) {
                 return;
             }
@@ -718,7 +754,6 @@ public class FinalProcess {
      }
      return true;
      }*/
-
     public ItemProperties getRootItem() {
         return rootItem;
     }

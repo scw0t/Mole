@@ -9,6 +9,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
+import org.apache.commons.lang3.StringUtils;
 
 public class Medium {
 
@@ -43,6 +44,7 @@ public class Medium {
         year = new SimpleStringProperty(this, "year");
         genres = new SimpleStringProperty(this, "genres");
         hasArtwork = new SimpleBooleanProperty(this, "hasArtwork");
+        type = new SimpleStringProperty(this, "type");
         yearAlbum = new HashMap<>();
     }
 
@@ -86,14 +88,21 @@ public class Medium {
         }
 
         if (albums.size() > 1) {
-            /*String albStr = "";
-             for (int i = 0; i < albums.size(); i++) {
-             albStr += get(albums, i);
-             if (i < albums.size() - 1) {
-             albStr += " + ";
-             }
-             }
-             album.set(albStr);*/
+            String albStr = "";
+            if (albums.size() == 2) {
+                if (StringUtils.getLevenshteinDistance(albums.first(), albums.last()) < 2) {
+                    albStr = albums.first();
+                } else {
+                    System.out.println("Album size = 2: \"" + albums.first() + "\", \"" + albums.last() + "\"");
+                    for (int i = 0; i < albums.size(); i++) {
+                        albStr += get(albums, i);
+                        if (i < albums.size() - 1) {
+                            albStr += " + ";
+                        }
+                    }
+                }
+            }
+            album.set(albStr);
         } else {
             album.set(albums.first());
         }

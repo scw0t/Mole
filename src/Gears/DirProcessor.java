@@ -77,8 +77,10 @@ public class DirProcessor {
                     }
                 }
             }
-
-            if (hasAudio(dir) && cdN == 0 && numberOfCD(dir.getParentFile()) > 0) {
+            
+            int cdn = numberOfCD(dir.getParentFile());
+            
+            if (hasAudio(dir) && cdN == 0 && cdn > 0) {
                 for (int i = 0; i < parsedDirList.size(); i++) {
                     if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
                         parsedDirList.remove(i);
@@ -125,6 +127,13 @@ public class DirProcessor {
                     num++;
                 }
             }
+        }
+        
+        int testN = directories.length - num + 1;
+        System.out.println("directories.length - num + 1 = " + testN);
+        
+        if (directories.length - num + 1 >= num) {
+            num = 0;
         }
         return num;
     }

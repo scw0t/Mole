@@ -7,7 +7,6 @@ import java.io.IOException;
 import static java.lang.System.out;
 import java.util.List;
 import static java.util.logging.Level.OFF;
-import java.util.logging.Logger;
 import static java.util.logging.Logger.getLogger;
 import javafx.application.Application;
 import static javafx.application.Platform.exit;
@@ -39,7 +38,8 @@ public class Mole extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
         getLogger("org.jaudiotagger").setLevel(OFF);
-        
+        getLogger("org.musicbrainz").setLevel(OFF);
+
         Scene scene = new Scene(new Controller(), 650, 900);
         scene.getStylesheets().add(getClass().getResource("toolbarStyle.css").toExternalForm());
 
@@ -52,10 +52,10 @@ public class Mole extends Application {
         primaryStage.show();
 
         /*try {
-         musicbrainzTest();
-         } catch (MBWS2Exception ex) {
-         Logger.getLogger(Mole.class.getName()).log(Level.SEVERE, null, ex);
-         }*/
+            musicbrainzTest();
+        } catch (MBWS2Exception ex) {
+            ex.printStackTrace();
+        }*/
         //gracenoteTest();
         /*try {
          echonestTest();
@@ -73,9 +73,11 @@ public class Mole extends Application {
     }
 
     private void musicbrainzTest() throws MBWS2Exception {
-        String artistName = "Aguaturbia";
-        String albumName = "Aguaturbia";
+        String artistName = "Erik";
+        String albumName = "Look Where I Am";
         String album_id = null;
+
+        
 
         //Поиск исполнителя
         org.musicbrainz.controller.Artist artistsearch = new org.musicbrainz.controller.Artist();
@@ -106,100 +108,102 @@ public class Mole extends Application {
         }
 
         ReleaseGroup releasegroupsearch = new ReleaseGroup();
-        releasegroupsearch.lookUp(releasegroup);
+        if (releasegroup != null) {
+            releasegroupsearch.lookUp(releasegroup);
 
-        //Список изданий релиза
-        List<ReleaseWs2> releases = releasegroupsearch.getFullReleaseList();
-        /*releases.sort(new Comparator<ReleaseWs2>() {
-            @Override
-            public int compare(ReleaseWs2 t, ReleaseWs2 t1) {
-                return t.getYear().compareTo(t1.getYear());
-            }
-        });*/
-        releases.stream().map((release) -> {
-            out.println("-----------------------------------");
-            return release;
-        }).map((release) -> {
-            out.println(release.getId());
-            return release;
-        }).map((release) -> {
-            out.println(release.getIdUri());
-            return release;
-        }).map((release) -> {
-            out.println("Artist credit: " + release.getArtistCredit());
-            return release;
-        }).map((release) -> {
-            out.println("Asin: " + release.getAsin());
-            return release;
-        }).map((release) -> {
-            out.println("Barcode: " + release.getBarcode());
-            return release;
-        }).map((release) -> {
-            out.println("CountryId: " + release.getCountryId());
-            return release;
-        }).map((release) -> {
-            out.println("DateStr: " + release.getDateStr());
-            return release;
-        }).map((release) -> {
-            out.println("Disambiguation: " + release.getDisambiguation());
-            return release;
-        }).map((release) -> {
-            out.println("Duration: " + release.getDuration());
-            return release;
-        }).map((release) -> {
-            out.println("Format: " + release.getFormat());
-            return release;
-        }).map((release) -> {
-            out.println("LabelInfo: " + release.getLabelInfoString());
-            return release;
-        }).map((release) -> {
-            out.println("Quality: " + release.getQualityStr());
-            return release;
-        }).map((release) -> {
-            out.println("Status: " + release.getStatus());
-            return release;
-        }).forEach((release) -> {
-            out.println("Year: " + release.getYear());
-        });
+            //Список изданий релиза
+            List<ReleaseWs2> releases = releasegroupsearch.getFullReleaseList();
+            /*releases.sort(new Comparator<ReleaseWs2>() {
+             @Override
+             public int compare(ReleaseWs2 t, ReleaseWs2 t1) {
+             return t.getYear().compareTo(t1.getYear());
+             }
+             });*/
+            releases.stream().map((release) -> {
+                out.println("-----------------------------------");
+                return release;
+            }).map((release) -> {
+                out.println(release.getId());
+                return release;
+            }).map((release) -> {
+                out.println(release.getIdUri());
+                return release;
+            }).map((release) -> {
+                out.println("Artist credit: " + release.getArtistCredit());
+                return release;
+            }).map((release) -> {
+                out.println("Asin: " + release.getAsin());
+                return release;
+            }).map((release) -> {
+                out.println("Barcode: " + release.getBarcode());
+                return release;
+            }).map((release) -> {
+                out.println("CountryId: " + release.getCountryId());
+                return release;
+            }).map((release) -> {
+                out.println("DateStr: " + release.getDateStr());
+                return release;
+            }).map((release) -> {
+                out.println("Disambiguation: " + release.getDisambiguation());
+                return release;
+            }).map((release) -> {
+                out.println("Duration: " + release.getDuration());
+                return release;
+            }).map((release) -> {
+                out.println("Format: " + release.getFormat());
+                return release;
+            }).map((release) -> {
+                out.println("LabelInfo: " + release.getLabelInfoString());
+                return release;
+            }).map((release) -> {
+                out.println("Quality: " + release.getQualityStr());
+                return release;
+            }).map((release) -> {
+                out.println("Status: " + release.getStatus());
+                return release;
+            }).forEach((release) -> {
+                out.println("Year: " + release.getYear());
+            });
 
-        ReleaseWs2 album = releases.get(0);
+            ReleaseWs2 album = releases.get(0);
 
-        Release releaselist = new Release();
-        releaselist.lookUp(album);
+            Release releaselist = new Release();
+            releaselist.lookUp(album);
 
-        MediumListWs2 releaselist1 = releaselist.getComplete(album).getMediumList();
+            MediumListWs2 releaselist1 = releaselist.getComplete(album).getMediumList();
 
-        out.println(releaselist.getComplete(album).getId());
-        out.println(releaselist.getComplete(album).getUserRating().getAverageRating());
+            out.println(releaselist.getComplete(album).getId());
+            out.println(releaselist.getComplete(album).getUserRating().getAverageRating());
 
-        List<TrackWs2> tracklist = releaselist1.getCompleteTrackList();
+            List<TrackWs2> tracklist = releaselist1.getCompleteTrackList();
 
-        List<PuidWs2> puids = tracklist.get(0).getRecording().getPuids();
+            List<PuidWs2> puids = tracklist.get(0).getRecording().getPuids();
 
-        puids.stream().forEach((id) -> {
-            out.println(id.getId());
-        });
+            puids.stream().forEach((id) -> {
+                out.println(id.getId());
+            });
 
-        out.println("artist: " + artist);
-        out.println("album: " + album);
-        out.println("title: " + tracklist.get(0).getRecording().getTitle());
-        out.println("genre: " + tracklist.get(0).getRecording().getTags().get(0).getName());
-        out.println("track: " + tracklist.get(0).getPosition());
-        out.println("year: " + album.getYear());
-        out.println("disc no.: " + releaselist1.getMedia().get(0));
-        out.println("label: " + album.getLabelInfoString());
-        out.println("artist sort : " + tracklist.get(0).getRecording().getArtistCreditString());
+            out.println("artist: " + artist);
+            out.println("album: " + album);
+            out.println("title: " + tracklist.get(0).getRecording().getTitle());
+            out.println("genre: " + tracklist.get(0).getRecording().getTags().get(0).getName());
+            out.println("track: " + tracklist.get(0).getPosition());
+            out.println("year: " + album.getYear());
+            out.println("disc no.: " + releaselist1.getMedia().get(0));
+            out.println("label: " + album.getLabelInfoString());
+            out.println("artist sort : " + tracklist.get(0).getRecording().getArtistCreditString());
+        }
+
     }
 
     /*private void gracenoteTest() throws GracenoteException {
-        String clientID = "16430336";
-        String clientTag = "F0C6EBDA21CDC1480EA44F1C3D504F9D";
-        String userID = "264116179042661687-1A9143576C10CBAFB5E42829DCF98066";
-        GracenoteWebAPI api = new GracenoteWebAPI(clientID, clientTag, userID);
-        //GracenoteMetadata results = api.searchTrack("King Crimson", "The Great Deceiver", "The Talking Drum");
-        GracenoteMetadata test2 = api.searchAlbum("Aguaturbia", "Aguaturbia");
-    }*/
-
+     String clientID = "16430336";
+     String clientTag = "F0C6EBDA21CDC1480EA44F1C3D504F9D";
+     String userID = "264116179042661687-1A9143576C10CBAFB5E42829DCF98066";
+     GracenoteWebAPI api = new GracenoteWebAPI(clientID, clientTag, userID);
+     //GracenoteMetadata results = api.searchTrack("King Crimson", "The Great Deceiver", "The Talking Drum");
+     GracenoteMetadata test2 = api.searchAlbum("Aguaturbia", "Aguaturbia");
+     }*/
     private void echonestTest() throws EchoNestException {
         String APIKey = "97SNZ1U81BZI1MTHR";
 
@@ -216,6 +220,4 @@ public class Mole extends Application {
         }
 
     }
-    private static final Logger LOG = Logger.getLogger(Mole.class.getName());
-
 }

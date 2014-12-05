@@ -24,7 +24,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.Button;
@@ -53,7 +52,7 @@ public class Controller extends BorderPane {
 
     private LogOutput logOutput;
 
-    private final String initDirPath = "i:\\Music\\!test\\";
+    private final String initDirPath = "d:\\Music\\!test2\\";
     public static TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
     public static TextArea infoTextArea;
@@ -151,21 +150,21 @@ public class Controller extends BorderPane {
             }
         });
 
-        tableView.setOnKeyPressed(new EventHandler<KeyEvent>() {
-            @Override
-            public void handle(KeyEvent k) {
-                try {
-                    if (k.getCode().equals(KeyCode.SPACE) || k.getCode().equals(KeyCode.ENTER)) {
-                        if (tableView.getSelectionModel().getSelectedItem().isChecked()) {
-                            tableView.getSelectionModel().getSelectedItem().setCheck(false);
-                        } else {
-                            tableView.getSelectionModel().getSelectedItem().setCheck(true);
-                        }
+        tableView.setOnKeyPressed((KeyEvent k) -> {
+            try {
+                if (k.getCode().equals(KeyCode.SPACE) || k.getCode().equals(KeyCode.ENTER)) {
+                    if (tableView.getSelectionModel().getSelectedItem().isChecked()) {
+                        tableView.getSelectionModel().getSelectedItem().setCheck(false);
+                    } else {
+                        tableView.getSelectionModel().getSelectedItem().setCheck(true);
                     }
-                } catch (NullPointerException e) {
-                    System.out.println("something happend");
                 }
 
+                if (k.getCode().equals(KeyCode.DELETE)) {
+                    tableView.getItems().remove(tableView.getSelectionModel().getSelectedItem());
+                }
+            } catch (NullPointerException e) {
+                System.out.println("something happend");
             }
         });
 
