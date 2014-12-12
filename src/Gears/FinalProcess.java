@@ -385,7 +385,7 @@ public class FinalProcess {
     private void fillAlbumString(StringBuilder albumString, Medium medium) {
         String year = "";
         if (medium.getYear() == null || medium.getYear().equals("")) {
-            year = rymp.getCurrentRecord().getYearRecorded();
+            year = rymp.getCurrentRecord().getYearReleased();
         } else {
             year = medium.getYear();
         }

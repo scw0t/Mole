@@ -31,8 +31,6 @@ public class RYMParser {
 
     private StringProperty message;
 
-    private int iterateCount; // кол-во итераций для поиска нужного исполнителя
-
     private String inputArtistName = "";
     private String inputAlbumName = "";
 
@@ -55,11 +53,13 @@ public class RYMParser {
     private Artist currentArtist;
     private Record currentRecord;
 
+    private int artistPageAttempts = 0;
+    private int albumPagesAttempts = 0;
+
     /**
      *
      */
     public RYMParser() {
-        iterateCount = 0;
     }
 
     /*
@@ -73,15 +73,10 @@ public class RYMParser {
     public boolean parseArtistInfo(String inputArtistName) {
         boolean parsed = false;
         try {
-            Document doc = Jsoup.connect(rymArtistUrl + validateUrl(inputArtistName))
-                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                    .timeout(20000).get();
-            Element contentTable = doc.getElementsByClass("artist_info").first();
-
+            Document doc = getArtistPage(inputArtistName);
             System.out.println("Parsing: " + rymArtistUrl + validateUrl(inputArtistName));
 
-            String pattern = "\\d{4}-(\\d{2,4}|present)|\\d{4}";
-            Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE);
+            Element contentTable = doc.getElementsByClass("artist_info").first();
 
             rymArtistName = doc.getElementsByClass("artist_name_hdr").first().text();
 
@@ -179,7 +174,6 @@ public class RYMParser {
                                 currentArtist.setGenres(artistGenres);
                                 break;
                         }
-
                     }
                 }
                 parseArtistDiscography(doc);
@@ -189,26 +183,50 @@ public class RYMParser {
             }
 
         } catch (IOException ex) {
-            System.out.println("URL. Status=404");
-            parsed = false;
+            artistPageAttempts++;
+
+            switch (artistPageAttempts) {
+                case 1:
+                    String fixedArtistName1 = inputArtistName.startsWith("The ") ? inputArtistName.replaceFirst("The ", "") : inputArtistName;
+                    parseArtistInfo(fixedArtistName1);
+                    break;
+                case 2:
+                    String fixedArtistName2 = !inputArtistName.startsWith("The ") ? "The " + inputArtistName : inputArtistName;
+                    parseArtistInfo(fixedArtistName2);
+                    break;
+                case 3:
+                    System.out.println("URL. Status=404");
+                    parsed = false;
+                    break;
+            }
         }
         return parsed;
+    }
+
+    private Document getArtistPage(String artistName) throws IOException {
+        return connect(rymArtistUrl + validateUrl(artistName))
+                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                .timeout(20000).get();
+    }
+
+    private Document getAlbumPage(String artistName, String albumTitle) throws IOException {
+        return connect(rymAlbumUrl + validateUrl(artistName) + "/" + validateUrl(albumTitle))
+                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                .timeout(20_000).get();
     }
 
     /**
      *
      * @return
      */
-    public boolean parseAlbumInfo() {
+    public boolean parseAlbumInfo(String artistName, String albumTitle) {
         boolean parsed = false;
         try {
-            Document doc = connect(currentAlbumUrl)
-                    .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                    .timeout(20_000).get();
+            Document doc = getAlbumPage(artistName, albumTitle);
 
             String fixUrl = fixAlbumUrl(doc);
 
-            message.setValue("Search album: " + inputAlbumName);
+            message.setValue("Search album: " + albumTitle);
 
             if (!fixUrl.equals(doc.baseUri())) {
                 currentAlbumUrl = fixUrl;
@@ -231,59 +249,61 @@ public class RYMParser {
                 for (int i = 0; i < contentTable.select("tr").size(); i++) {
                     Element subTableHeader = contentTable.select("th").get(i);
                     if (subTableHeader != null) {
-                        if (subTableHeader.text().equals("Artist")) {
-                            out.println("-----Artist-----");
-                            Elements artistElements = contentTable.select("tr").get(i).getElementsByClass("artist");
+                        switch (subTableHeader.text()) {
+                            case "Artist":
+                                out.println("-----Artist-----");
+                                Elements artistElements = contentTable.select("tr").get(i).getElementsByClass("artist");
 
-                            if (artistElements.size() > 1) {
-                                ArrayList<Artist> subArtists = new ArrayList<>();
-                                artistElements.stream().map((element) -> {
-                                    Artist subArtist = new Artist(element.text());
-                                    subArtist.setLink(element.attr("href"));
-                                    return subArtist;
-                                }).forEach((subArtist) -> {
-                                    subArtists.add(subArtist);
+                                if (artistElements.size() > 1) {
+                                    ArrayList<Artist> subArtists = new ArrayList<>();
+                                    artistElements.stream().map((element) -> {
+                                        Artist subArtist = new Artist(element.text());
+                                        subArtist.setLink(element.attr("href"));
+                                        return subArtist;
+                                    }).forEach((subArtist) -> {
+                                        subArtists.add(subArtist);
+                                    });
+                                    currentRecord.setArtist(subArtists.get(i));
+                                    currentRecord.setSubArtists(subArtists);
+                                } else {
+                                    Artist recArtist = new Artist(artistElements.first().text());
+                                    recArtist.setLink(artistElements.first().attr("href"));
+                                    currentRecord.setArtist(recArtist);
+                                }
+
+                                rymArtistName = contentTable.select("tr").get(i).getElementsByClass("artist").first()
+                                        .attr("href").replaceFirst("/artist/", "");
+                                break;
+
+                            case "Type":
+                                currentRecord.setType(contentTable.select("tr").get(i).select("td").text());
+                                break;
+
+                            case "Released":
+                                currentRecord.setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                                        .split(" ")[2]);
+                                break;
+
+                            case "Recorded":
+                                currentRecord.setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
+                                        .split(" ")[2]);
+                                break;
+
+                            case "Genres":
+                                ArrayList<Genre> albumGenres = new ArrayList<>();
+                                Element element = contentTable.select("tr").get(i).
+                                        getElementsByClass("release_pri_genres").first();
+                                Elements genresElements = element.getElementsByClass("genre");
+                                genresElements.stream().filter((genreElement) -> (!genreElement.text().equals("Rock"))).map((genreElement) -> {
+                                    Genre genre = new Genre();
+                                    genre.setName(genreElement.text());
+                                    genre.setLink(genreElement.attr("href"));
+                                    return genre;
+                                }).forEach((genre) -> {
+                                    albumGenres.add(genre);
                                 });
-                                currentRecord.setArtist(subArtists.get(i));
-                                currentRecord.setSubArtists(subArtists);
-                            } else {
-                                Artist recArtist = new Artist(artistElements.first().text());
-                                recArtist.setLink(artistElements.first().attr("href"));
-                                currentRecord.setArtist(recArtist);
-                            }
-
-                            rymArtistName = contentTable.select("tr").get(i).getElementsByClass("artist").first()
-                                    .attr("href").replaceFirst("/artist/", "");
-                        }
-
-                        if (subTableHeader.text().equals("Type")) {
-                            currentRecord.setType(contentTable.select("tr").get(i).select("td").text());
-                        }
-
-                        if (subTableHeader.text().equals("Released")) {
-                            currentRecord.setYearReleased(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
-                                    .split(" ")[2]);
-                        }
-
-                        if (subTableHeader.text().equals("Recorded")) {
-                            currentRecord.setYearRecorded(parseDate(contentTable.select("tr").get(i).select("td").text())[0]
-                                    .split(" ")[2]);
-                        }
-
-                        if (subTableHeader.text().equals("Genres")) {
-                            ArrayList<Genre> albumGenres = new ArrayList<>();
-                            Element element = contentTable.select("tr").get(i).
-                                    getElementsByClass("release_pri_genres").first();
-                            Elements genresElements = element.getElementsByClass("genre");
-                            genresElements.stream().filter((genreElement) -> (!genreElement.text().equals("Rock"))).map((genreElement) -> {
-                                Genre genre = new Genre();
-                                genre.setName(genreElement.text());
-                                genre.setLink(genreElement.attr("href"));
-                                return genre;
-                            }).forEach((genre) -> {
-                                albumGenres.add(genre);
-                            });
-                            currentRecord.setGenres(albumGenres);
+                                currentRecord.setGenres(albumGenres);
+                                break;
                         }
                     }
                 }
@@ -294,37 +314,73 @@ public class RYMParser {
                 message.setValue("Unable to parse album " + inputAlbumName);
             }
         } catch (IOException ex) {
-            String RYMArtistNameLink;
-            while (iterateCount < 2) {
+            albumPagesAttempts++;
+            //String RYMArtistNameLink;
 
-                out.println("count: " + iterateCount);
-
-                if (iterateCount == 0) {
-                    message.setValue("Deep search... " + getInputArtistName());
-                    Pattern p = compile("The ", CASE_INSENSITIVE);
-                    Matcher matcher = p.matcher(getInputArtistName());
-                    if (matcher.find()) {
-                        RYMArtistNameLink = validateUrl(getInputArtistName().toLowerCase().replaceFirst("the ", ""));
-                    } else {
-                        RYMArtistNameLink = validateUrl("The " + getInputArtistName());
-                    }
-
-                } else {
-                    message.setValue("Deep search... " + getInputArtistName() + ". Iteration " + iterateCount);
-                    RYMArtistNameLink = validateUrl(getInputArtistName()) + "_f" + iterateCount;
-                }
-                setCurrentAlbumUrl(rymAlbumUrl + RYMArtistNameLink + "/" + validateUrl(getInputAlbumName()));
-
-                iterateCount++;
-
-                if (parseAlbumInfo()) {
-                    parsed = true;
+            switch (albumPagesAttempts) {
+                case 1:
+                    String fixedArtistNameWithoutPrefix_1 = artistName.startsWith("The ") ? artistName.replaceFirst("The ", "") : artistName;
+                    String fixedAlbumNameWithoutPrefix_1 = albumTitle.startsWith("The ") ? albumTitle.replaceFirst("The ", "") : albumTitle;
+                    message.setValue("Search case: " + fixedArtistNameWithoutPrefix_1 + " - " + fixedAlbumNameWithoutPrefix_1);
+                    parseAlbumInfo(fixedArtistNameWithoutPrefix_1, fixedAlbumNameWithoutPrefix_1);
                     break;
-                } else {
+                case 2:
+                    String fixedArtistNameWithoutPrefix_2 = artistName.startsWith("The ") ? artistName.replaceFirst("The ", "") : artistName;
+                    String fixedAlbumNameWithPrefix_2 = !albumTitle.startsWith("The ") ? "The " + albumTitle : albumTitle;
+                    message.setValue("Search case: " + fixedArtistNameWithoutPrefix_2 + " - " + fixedAlbumNameWithPrefix_2);
+                    parseAlbumInfo(fixedArtistNameWithoutPrefix_2, fixedAlbumNameWithPrefix_2);
+                    break;
+                case 3:
+                    String fixedArtistNameWithPrefix_3 = !artistName.startsWith("The ") ? "The " + artistName : artistName;
+                    String fixedAlbumNameWithoutPrefix_3 = albumTitle.startsWith("The ") ? albumTitle.replaceFirst("The ", "") : albumTitle;
+                    message.setValue("Search case: " + fixedArtistNameWithPrefix_3 + " - " + fixedAlbumNameWithoutPrefix_3);
+                    parseAlbumInfo(fixedArtistNameWithPrefix_3, fixedAlbumNameWithoutPrefix_3);
+                    break;
+                case 4:
+                    String fixedArtistNameWithPrefix_4 = !artistName.startsWith("The ") ? "The " + artistName : artistName;
+                    String fixedAlbumNameWithPrefix_4 = !albumTitle.startsWith("The ") ? "The " + albumTitle : albumTitle;
+                    message.setValue("Search case: " + fixedArtistNameWithPrefix_4 + " - " + fixedAlbumNameWithPrefix_4);
+                    parseAlbumInfo(fixedArtistNameWithPrefix_4, fixedAlbumNameWithPrefix_4);
+                    break;
+                case 5:
+                    message.setValue("Search case: " + inputArtistName + "_f1");
+                    parseAlbumInfo(artistName + "_f1", albumTitle);
+                    break;
+                default:
                     parsed = false;
                     break;
-                }
             }
+
+            /*while (albumPagesAttempts < 2) {
+
+             out.println("count: " + albumPagesAttempts);
+
+             if (albumPagesAttempts == 0) {
+             message.setValue("Deep search... " + getInputArtistName());
+             Pattern p = compile("The ", CASE_INSENSITIVE);
+             Matcher matcher = p.matcher(getInputArtistName());
+             if (matcher.find()) {
+             RYMArtistNameLink = validateUrl(getInputArtistName().toLowerCase().replaceFirst("the ", ""));
+             } else {
+             RYMArtistNameLink = validateUrl("The " + getInputArtistName());
+             }
+
+             } else {
+             message.setValue("Deep search... " + getInputArtistName() + ". Iteration " + albumPagesAttempts);
+             RYMArtistNameLink = validateUrl(getInputArtistName()) + "_f" + albumPagesAttempts;
+             }
+             setCurrentAlbumUrl(rymAlbumUrl + RYMArtistNameLink + "/" + validateUrl(getInputAlbumName()));
+
+             albumPagesAttempts++;
+
+             if (parseAlbumInfo()) {
+             parsed = true;
+             break;
+             } else {
+             parsed = false;
+             break;
+             }
+             }*/
         }
 
         return parsed;
@@ -1254,7 +1310,7 @@ public class RYMParser {
      */
     public void setInputArtistNameAndInitUrl(String inputArtistName) {
         this.inputArtistName = inputArtistName;
-        setCurrentArtistUrl(rymArtistUrl + validateUrl(inputArtistName));
+        currentArtistUrl = rymArtistUrl + validateUrl(inputArtistName);
     }
 
     /**
@@ -1263,7 +1319,7 @@ public class RYMParser {
      */
     public void setInputAlbumNameAndInitUrl(String inputAlbumName) {
         this.inputAlbumName = inputAlbumName;
-        setCurrentAlbumUrl(rymAlbumUrl + validateUrl(inputArtistName) + "/" + validateUrl(inputAlbumName));
+        currentAlbumUrl = rymAlbumUrl + validateUrl(inputArtistName) + "/" + validateUrl(inputAlbumName);
     }
 
     /**

@@ -46,6 +46,10 @@ public class ParseFactory {
         rymp = new RYMParser();
         rymp.setMessage(message);
     }
+    
+    public void test(){
+        
+    }
 
     public void launch() {
         if (rootItem.hasVaAttribute()) {                      //СБОРНИК
@@ -104,7 +108,7 @@ public class ParseFactory {
         rymp.setInputAlbumNameAndInitUrl(medium.getAlbum());
 
         //поиск по имени релиза
-        if (rymp.parseAlbumInfo()) {
+        if (rymp.parseAlbumInfo(medium.getArtist(), medium.getAlbum())) {
             rymp.parseArtistInfo(rymp.getRymArtistName());
             passed = true;
         } else {
@@ -262,7 +266,7 @@ public class ParseFactory {
         for (Record record : rymp.getLpRecords()) {
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -271,7 +275,7 @@ public class ParseFactory {
         for (Record record : rymp.getLiveRecords()) {
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -280,7 +284,7 @@ public class ParseFactory {
         for (Record record : rymp.getCompRecords()) {
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -288,7 +292,7 @@ public class ParseFactory {
         for (Record record : rymp.getBootlegRecords()) {
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -297,7 +301,7 @@ public class ParseFactory {
         for (Record record : rymp.getVaRecords()) {
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -315,7 +319,7 @@ public class ParseFactory {
 
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -336,7 +340,7 @@ public class ParseFactory {
 
             if (getLevenshteinDistance(rymp.getInputAlbumName(), record.getName()) <= 2) {
                 rymp.setCurrentAlbumUrl(record.getLink());
-                rymp.parseAlbumInfo();
+                rymp.parseAlbumInfo(rymp.getCurrentArtist().getName(), record.getName());
                 break;
             }
         }
@@ -407,6 +411,5 @@ public class ParseFactory {
             return null;
         }
     }
-    private static final Logger LOG = Logger.getLogger(ParseFactory.class.getName());
 
 }
