@@ -52,7 +52,7 @@ public class Controller extends BorderPane {
 
     private LogOutput logOutput;
 
-    private final String initDirPath = "d:\\Music\\!test2\\";
+    private final String initDirPath = "i:\\Music\\!test2\\";
     public static TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
     public static TextArea infoTextArea;

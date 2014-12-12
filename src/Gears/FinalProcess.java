@@ -35,6 +35,7 @@ import static org.jaudiotagger.tag.FieldKey.GENRE;
 import static org.jaudiotagger.tag.FieldKey.RECORD_LABEL;
 import static org.jaudiotagger.tag.FieldKey.TITLE;
 import static org.jaudiotagger.tag.FieldKey.TRACK;
+import static org.jaudiotagger.tag.FieldKey.TRACK_TOTAL;
 import static org.jaudiotagger.tag.FieldKey.YEAR;
 import org.jaudiotagger.tag.KeyNotFoundException;
 import org.jaudiotagger.tag.TagException;
@@ -151,6 +152,8 @@ public class FinalProcess {
                 trackString = Integer.toString(trackCount);
             }
 
+            file.getTag().setField(TRACK_TOTAL, "");
+
             file.getTag().setField(TRACK, trackString);
 
             //Запись тега TRACK_TOTAL
@@ -195,7 +198,7 @@ public class FinalProcess {
                     file.getTag().setField(YEAR, outputAlbumYearValue);
                 }
             }
-            
+
             if (file.getTag().getFirst(YEAR).contains("//")) {
                 file.getTag().setField(YEAR, file.getTag().getFirst(YEAR).replaceAll("\\/\\S+", ""));
             }
@@ -584,6 +587,21 @@ public class FinalProcess {
                 outputRecordGenresValue = rymp.getCurrentRecord().allGenresToString();
             } else if (rymp.getCurrentArtist() != null && !rymp.getCurrentArtist().getGenres().isEmpty()) {
                 outputRecordGenresValue = rymp.getCurrentArtist().allGenresToString();
+            } else {
+                //добавление жанра из тегов
+                /*boolean passed = false;
+                if (!rootItem.getChildList().isEmpty()) {
+                    for (ItemProperties child : rootItem.getChildList()) {
+                        if (child.hasAudioAttribute()) {
+                            outputRecordGenresValue = child.getMediumList().get(0).getGenres();
+                            passed = true;
+                        }
+                    }
+                } 
+                
+                if (!passed) {
+                    outputRecordGenresValue = rootItem.getMediumList().get(0).getGenres();
+                }*/
             }
 
             if (!rymp.getCurrentRecord().getYearRecorded().isEmpty()) {

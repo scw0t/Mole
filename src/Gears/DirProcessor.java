@@ -132,7 +132,7 @@ public class DirProcessor {
         int testN = directories.length - num + 1;
         System.out.println("directories.length - num + 1 = " + testN);
         
-        if (directories.length - num + 1 >= num) {
+        if (directories.length - num + 1 > num) {
             num = 0;
         }
         return num;
