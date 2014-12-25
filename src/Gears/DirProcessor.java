@@ -14,9 +14,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -60,36 +63,72 @@ public class DirProcessor {
     private void removeExcessDirs(File dir) {
         try {
             int cdN = numberOfCD(dir);
-            
-            if ((!hasAudio(dir) && cdN == 0) && !hasInnerFolder(dir)) {
-                for (int i = 0; i < parsedDirList.size(); i++) {
-                    if (parsedDirList.get(i).getValue().getAbsolutePath().contains(dir.getAbsolutePath())) {
-                        parsedDirList.remove(i);
+
+            if (dir.getName().equals("__MACOSX")) {
+                if (dir.exists()) {
+                    deleteMacosxDirectory(dir);
+                }
+                
+                Iterator it = parsedDirList.iterator();
+                
+                while (it.hasNext()) {
+                    IncomingDirectory next = (IncomingDirectory) it.next();
+                    if (next.getValue().getAbsolutePath().contains(dir.getName())) {
+                        it.remove();
+                    }
+                }
+
+            } else {
+                if ((!hasAudio(dir) && cdN == 0) && !hasInnerFolder(dir)) {
+                    for (int i = 0; i < parsedDirList.size(); i++) {
+                        if (parsedDirList.get(i).getValue().getAbsolutePath().contains(dir.getAbsolutePath())) {
+                            parsedDirList.remove(i);
+                        }
+                    }
+                }
+
+                if (!hasAudio(dir) && cdN == 0 && hasInnerFolder(dir)) {
+                    for (int i = 0; i < parsedDirList.size(); i++) {
+                        if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
+                            parsedDirList.remove(i);
+                            break;
+                        }
+                    }
+                }
+
+                int cdn = numberOfCD(dir.getParentFile());
+
+                if (hasAudio(dir) && cdN == 0 && cdn > 0) {
+                    for (int i = 0; i < parsedDirList.size(); i++) {
+                        if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
+                            parsedDirList.remove(i);
+                            //break;
+                        }
                     }
                 }
             }
 
-            if (!hasAudio(dir) && cdN == 0 && hasInnerFolder(dir)) {
-                for (int i = 0; i < parsedDirList.size(); i++) {
-                    if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
-                        parsedDirList.remove(i);
-                        break;
-                    }
-                }
-            }
-            
-            int cdn = numberOfCD(dir.getParentFile());
-            
-            if (hasAudio(dir) && cdN == 0 && cdn > 0) {
-                for (int i = 0; i < parsedDirList.size(); i++) {
-                    if (parsedDirList.get(i).getValue().getAbsolutePath().equals(dir.getAbsolutePath())) {
-                        parsedDirList.remove(i);
-                        //break;
-                    }
-                }
-            }
         } catch (IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
             Logger.getLogger(DirProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public void deleteMacosxDirectory(final File MAC_FOLDER) {
+        // check if folder file is a real folder
+        if (MAC_FOLDER.isDirectory()) {
+            File[] list = MAC_FOLDER.listFiles();
+            if (list != null) {
+                for (int i = 0; i < list.length; i++) {
+                    File tmpF = list[i];
+                    if (tmpF.isDirectory()) {
+                        deleteMacosxDirectory(tmpF);
+                    }
+                    tmpF.delete();
+                }
+            }
+            if (!MAC_FOLDER.delete()) {
+                System.out.println("can't delete folder : " + MAC_FOLDER);
+            }
         }
     }
 
@@ -114,6 +153,9 @@ public class DirProcessor {
 
     public static int numberOfCD(File dir) {
         int num = 0;
+
+        Pattern p = Pattern.compile("(?i)^(cd |cd|disc|disc )\\d+.*");
+
         File[] directories = dir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File current, String name) {
@@ -123,15 +165,18 @@ public class DirProcessor {
 
         if (directories.length > 1) {
             for (File directory : directories) {
-                if (directory.getName().matches("(?i)^(cd |cd|disc|disc )\\d+")) {
+
+                Matcher m = p.matcher(directory.getName());
+
+                if (m.matches()) {
                     num++;
                 }
             }
         }
-        
+
         int testN = directories.length - num + 1;
         System.out.println("directories.length - num + 1 = " + testN);
-        
+
         if (directories.length - num + 1 > num) {
             num = 0;
         }
@@ -147,6 +192,11 @@ public class DirProcessor {
                 if (dir != null && dir.exists()) {
                     removeExcessDirs(dir);
                 }
+            }
+            
+            System.out.println("121212");
+            for (IncomingDirectory dir : parsedDirList) {
+                System.out.println(dir.getValue().getAbsolutePath());
             }
 
             for (int i = 0; i < parsedDirList.size(); i++) {

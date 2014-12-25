@@ -26,6 +26,7 @@ public class ParseTask extends Task<ObservableList<CListView.CModel>> {
         });
 
         try {
+            //parseFactory.setType(typeProperty.getValue());
             parseFactory.launch();
             if (parseFactory.getIssueList().isEmpty()) {
                 Platform.runLater(() -> {

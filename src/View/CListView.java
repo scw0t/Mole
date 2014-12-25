@@ -17,6 +17,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TableColumn;
@@ -51,8 +52,7 @@ public class CListView extends Stage {
     private TextField artistTextField = new TextField();
     private TextField albumTextField = new TextField();
     private TextField typeTextField = new TextField();
-
-    ;
+    private ComboBox typeBox = new ComboBox();
 
     public CListView() {
         initModality(Modality.WINDOW_MODAL);
@@ -83,7 +83,13 @@ public class CListView extends Stage {
         okButton.setOnAction((ActionEvent event) -> {
             if (!cTable.getItems().isEmpty()) {
                 if (!cTable.getSelectionModel().isEmpty()) {
-                    finalProcess.setSelectedIssue(cTable.getSelectionModel().getSelectedItem().getIssue());
+                    Issue selected;
+                    if (cTable.getSelectionModel().getSelectedItem() == null) {
+                        selected = cTable.getItems().get(0).getIssue();
+                    } else {
+                        selected = cTable.getSelectionModel().getSelectedItem().getIssue();
+                    }
+                    finalProcess.setSelectedIssue(selected);
                     try {
                         finalProcess.launch();
                     } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
@@ -145,7 +151,8 @@ public class CListView extends Stage {
         refreshButton.setOnAction((ActionEvent event) -> {
             if (!artistTextField.getText().equals("") && !albumTextField.getText().equals("")) {
                 ItemProperties newRootItem = new ItemProperties(rootItem);
-                newRootItem.refreshData(artistTextField.getText(), albumTextField.getText(), typeTextField.getText());
+
+                newRootItem.refreshData(artistTextField.getText(), albumTextField.getText(), "Album");
                 ParseFactory parseFactory = new ParseFactory(newRootItem);
 
                 finalProcess = new FinalProcess(newRootItem);
@@ -159,17 +166,23 @@ public class CListView extends Stage {
                 stateLabel.textProperty().unbind();
                 albumTextField.textProperty().unbind();
                 artistTextField.textProperty().unbind();
-                typeTextField.textProperty().unbind();
+                //typeTextField.textProperty().unbind();
+                typeBox.getEditor().textProperty().unbind();
+                
+                
                 
                 cTable.itemsProperty().bind(parseTask.valueProperty());
                 indicator.progressProperty().bind(parseTask.progressProperty());
                 stateLabel.textProperty().bind(parseTask.messageProperty());
-                albumTextField.textProperty().bind(parseTask.getAlbumProperty());
-                artistTextField.textProperty().bind(parseTask.getArtistProperty());
-                typeTextField.textProperty().bind(parseTask.getTypeProperty());
+                albumTextField.textProperty().bindBidirectional(parseTask.getAlbumProperty());
+                artistTextField.textProperty().bindBidirectional(parseTask.getArtistProperty());
+                typeBox.getEditor().textProperty().bind(parseTask.getTypeProperty());
+                //typeTextField.textProperty().bindBidirectional(parseTask.getTypeProperty());
+                System.out.println(typeBox.getEditor().textProperty().getValue());
 
                 new Thread(parseTask).start();
             }
+
 
             /*ParseFactory parseFactory = new ParseFactory(item.getItemProperty());
              FinalProcess finalProcess = new FinalProcess(item.getItemProperty());
@@ -182,17 +195,28 @@ public class CListView extends Stage {
         Label artistLabel = new Label("Artist");
         Label albumLabel = new Label("Album");
         Label typeLabel = new Label("Type");
+        
+        ObservableList<String> lst = FXCollections.observableArrayList(
+                "Album",
+                "EP",
+                "Single",
+                "Compilation",
+                "Bootleg"
+        );
+
+        typeBox = new ComboBox(lst);
+        typeBox.getSelectionModel().selectFirst();
 
         artistTextField = new TextField();
         albumTextField = new TextField();
-        
+
         artistTextField.setEditable(true);
         albumTextField.setEditable(true);
         typeTextField.setEditable(true);
 
         artistTextField.setPrefWidth(300);
         albumTextField.setPrefWidth(300);
-        typeTextField.setPrefWidth(100);
+        //typeTextField.setPrefWidth(100);
 
         GridPane grid = new GridPane();
         HBox.setHgrow(grid, Priority.ALWAYS);
@@ -204,7 +228,7 @@ public class CListView extends Stage {
         grid.add(albumLabel, 1, 2);         // column=1 row=2
         grid.add(albumTextField, 2, 2);     // column=2 row=2
         grid.add(typeLabel, 3, 1);          // column=3 row=1
-        grid.add(typeTextField, 4, 1);      // column=4 row=1
+        grid.add(typeBox, 4, 1);      // column=4 row=1
         grid.add(refreshButton, 4, 2);      // column=4 row=2
         grid.setPadding(new Insets(0, 0, 10, 0));
 
@@ -269,6 +293,14 @@ public class CListView extends Stage {
 
     public void setTypeTextField(TextField typeTextField) {
         this.typeTextField = typeTextField;
+    }
+
+    public ComboBox getTypeBox() {
+        return typeBox;
+    }
+
+    public void setTypeBox(ComboBox typeBox) {
+        this.typeBox = typeBox;
     }
 
     public class CTable extends TableView<CModel> {

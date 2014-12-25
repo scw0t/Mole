@@ -27,6 +27,11 @@ public class RYMParser {
     private final String rymUrl = "http://rateyourmusic.com";
     private final String rymArtistUrl = "http://rateyourmusic.com/artist/";
     private final String rymAlbumUrl = "http://rateyourmusic.com/release/album/";
+    private final String rymSingleUrl = "http://rateyourmusic.com/release/single/";
+    private final String rymCompUrl = "http://rateyourmusic.com/release/comp/";
+    private final String rymUnauthUrl = "http://rateyourmusic.com/release/unauth/";
+    private final String rymEpUrl = "http://rateyourmusic.com/release/ep/";
+    private final String rymVideoUrl = "http://rateyourmusic.com/release/video/";
     private final String rymVAUrl = "http://rateyourmusic.com/release/comp/various_artists_f2/";
 
     private StringProperty message;
@@ -39,6 +44,8 @@ public class RYMParser {
     private String currentAlbumUrl = "";
     private String currentArtistUrl = "";
     private final String currentVAUrl = "";
+
+    private String type = "";
 
     private ArrayList<Record> lpRecords;
     private ArrayList<Record> liveRecords;
@@ -60,6 +67,49 @@ public class RYMParser {
      *
      */
     public RYMParser() {
+    }
+    
+    private Document getArtistPage(String artistName) throws IOException {
+        String link;
+        
+        if (currentRecord != null) {
+            link = rymUrl + currentRecord.getArtist().getLink();
+        } else {
+            link = rymArtistUrl + validateUrl(artistName);
+        }
+        
+        
+        return connect(link)
+                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                .timeout(20000).get();
+    }
+
+    private Document getAlbumPage(String artistName, String albumTitle) throws IOException {
+        String releaseTypeUrl = "";
+        switch (type) {
+            case "Album":
+                releaseTypeUrl = rymAlbumUrl;
+                break;
+            case "EP":
+                releaseTypeUrl = rymEpUrl;
+                break;
+            case "Single":
+                releaseTypeUrl = rymSingleUrl;
+                break;
+            case "Compilation":
+                releaseTypeUrl = rymCompUrl;
+                break;
+            case "Bootleg":
+                releaseTypeUrl = rymUnauthUrl;
+                break;
+            default:
+                releaseTypeUrl = rymAlbumUrl;
+                break;
+        }
+
+        return connect(releaseTypeUrl + validateUrl(artistName) + "/" + validateUrl(albumTitle))
+                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
+                .timeout(20_000).get();
     }
 
     /*
@@ -203,17 +253,7 @@ public class RYMParser {
         return parsed;
     }
 
-    private Document getArtistPage(String artistName) throws IOException {
-        return connect(rymArtistUrl + validateUrl(artistName))
-                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                .timeout(20000).get();
-    }
-
-    private Document getAlbumPage(String artistName, String albumTitle) throws IOException {
-        return connect(rymAlbumUrl + validateUrl(artistName) + "/" + validateUrl(albumTitle))
-                .userAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.21 (KHTML, like Gecko) Chrome/19.0.1042.0 Safari/535.21")
-                .timeout(20_000).get();
-    }
+    
 
     /**
      *
@@ -344,7 +384,11 @@ public class RYMParser {
                     break;
                 case 5:
                     message.setValue("Search case: " + inputArtistName + "_f1");
-                    parseAlbumInfo(artistName + "_f1", albumTitle);
+                    parseAlbumInfo(inputArtistName + "_f1", inputAlbumName);
+                    break;
+                case 6:
+                    message.setValue("Search case: " + inputArtistName + "_f2");
+                    parseAlbumInfo(inputArtistName + "_f2", inputAlbumName);
                     break;
                 default:
                     parsed = false;
@@ -643,6 +687,7 @@ public class RYMParser {
      * @param doc
      */
     public void parseArtistDiscography(Document doc) {
+        System.out.println(doc.baseUri());
         message.setValue("Parsing discography...");
         Element discographyDiv = doc.getElementById("discography");
         Element albumsDiv = discographyDiv.getElementById("disco_type_s");
@@ -1172,6 +1217,8 @@ public class RYMParser {
                 sb.append("_");
             } else if (charArr[i] == ' ') {
                 sb.append("_");
+            } else if (charArr[i] == '¡') {
+                sb.append("_");
             } else if (charArr[i] == '"') {
                 sb.append("");
             } else if (charArr[i] == '&') {
@@ -1362,5 +1409,13 @@ public class RYMParser {
         this.message = message;
     }
     private static final Logger LOG = Logger.getLogger(RYMParser.class.getName());
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 
 }

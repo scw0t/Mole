@@ -52,7 +52,7 @@ public class Controller extends BorderPane {
 
     private LogOutput logOutput;
 
-    private final String initDirPath = "i:\\Music\\!test2\\";
+    private final String initDirPath = "e:\\Music\\!test2\\";
     public static TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
     public static TextArea infoTextArea;
@@ -172,7 +172,7 @@ public class Controller extends BorderPane {
 
     private String buildReleaseInfo(ItemProperties rootItem) {
         StringBuilder infoStringBuilder = new StringBuilder();
-        if (rootItem.getCdN() > 0) {
+        if (rootItem.getCdNPropertyValue() > 0) {
             infoStringBuilder.append(rootItem.getDirectoryName()).append("\n");
 
             for (ItemProperties childCD : rootItem.getChildList()) {
@@ -324,12 +324,13 @@ public class Controller extends BorderPane {
 
                             CListView cListView = new CListView();
                             cListView.setFinalProcess(finalProcess);
+                            cListView.setRootItem(item.getItemProperty());
                             cListView.getcTable().itemsProperty().bind(parseTask.valueProperty());
                             cListView.getIndicator().progressProperty().bind(parseTask.progressProperty());
                             cListView.getStateLabel().textProperty().bind(parseTask.messageProperty());
                             cListView.getAlbumTextField().textProperty().bindBidirectional(parseTask.getAlbumProperty());
                             cListView.getArtistTextField().textProperty().bindBidirectional(parseTask.getArtistProperty());
-                            cListView.getTypeTextField().textProperty().bindBidirectional(parseTask.getTypeProperty());
+                            //cListView.getTypeTextField().textProperty().bindBidirectional(parseTask.getTypeProperty());
                             
                             new Thread(parseTask).start();
                             cListView.showAndWait();

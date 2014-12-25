@@ -12,11 +12,16 @@ import static java.lang.System.out;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import static org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR;
 import static org.apache.commons.io.FilenameUtils.getExtension;
+import static org.apache.commons.io.FilenameUtils.getBaseName;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
 import org.jaudiotagger.audio.exceptions.CannotWriteException;
 import org.jaudiotagger.audio.exceptions.InvalidAudioFrameException;
@@ -115,6 +120,7 @@ public class FinalProcess {
                     moveFactory(child);
                     removeFileAndParentsIfEmpty(child.getCurrentDir().getValue().toPath());
                 }
+                moveFactory(rootItem);
                 removeFileAndParentsIfEmpty(rootItem.getParentDir().getValue().toPath());
             }
 
@@ -160,7 +166,7 @@ public class FinalProcess {
             //file.getTag().setField(TRACK_TOTAL, Integer.toString(medium.getAudioList().size()));
             //Запись тега DISC_NO
             if (file.getTag().getFirst(DISC_NO).isEmpty()) {
-                if (audio.getCdN() == 0 && rootItem.getCdN() > 0) {
+                if (audio.getCdN() == 0 && rootItem.getCdNPropertyValue() > 0) {
                     file.getTag().setField(DISC_NO, Integer.toString(medium.getCdN()));
                 }
             } else {
@@ -190,7 +196,7 @@ public class FinalProcess {
 
             //Запись тега YEAR. Если в поле YEAR уже есть значение, то сохраняется наименьшее
             if (!outputAlbumYearValue.isEmpty() && !file.getTag().getFirst(YEAR).equals(outputAlbumYearValue)) {
-                if (!file.getTag().getFirst(YEAR).isEmpty()) {
+                if (!file.getTag().getFirst(YEAR).isEmpty() && file.getTag().getFirst(YEAR).length() == 4) {
                     if (valueOf(outputAlbumYearValue) < valueOf(file.getTag().getFirst(YEAR))) {
                         file.getTag().setField(YEAR, outputAlbumYearValue);
                     }
@@ -263,7 +269,12 @@ public class FinalProcess {
 
             //Применение изменений
             try {
-                file.commit();
+                if (file.getFile().setWritable(true)) {
+                    file.commit();
+                } else {
+                    System.out.println("File " + file.getFile().getName() + " is read only");
+                }
+
             } catch (CannotWriteException e) {
             } finally {
                 trackCount++;
@@ -320,13 +331,16 @@ public class FinalProcess {
                         e.printStackTrace();
                     } finally {
                     }
-
                 }
             }
         }
+
         if (!renamedAudioList.isEmpty()) {
             medium.setAudioList(renamedAudioList);
             medium.getCurrentItem().setListOfAudioFiles(renamedAudioList);
+            if (rootItem.hasAudioAttribute()) {
+                rootItem.setListOfAudioFiles(renamedAudioList);
+            }
         }
     }
 
@@ -368,7 +382,7 @@ public class FinalProcess {
                 for (Medium medium : child.getMediumList()) {
                     fillAlbumString(albumString, medium);
                 }
-                if (rootItem.getCdN() > 0) {
+                if (rootItem.getCdNPropertyValue() > 0 && child.hasAudioAttribute()) {
                     break;
                 }
             }
@@ -379,18 +393,19 @@ public class FinalProcess {
         }
 
         if (rootItem.getCdN() > 0) {
-            albumString.append(" [").append(rootItem.getCdN()).append("CD]");
+            albumString.append(" (").append(rootItem.getCdN()).append("CD)");
         }
 
         return albumString.toString();
     }
 
     private void fillAlbumString(StringBuilder albumString, Medium medium) {
-        String year = "";
+        String year;
         if (medium.getYear() == null || medium.getYear().equals("")) {
             year = rymp.getCurrentRecord().getYearReleased();
         } else {
-            year = medium.getYear();
+            //year = medium.getYear();
+            year = outputAlbumYearValue;
         }
         if (rootItem.hasVaAttribute()) { //если VA
             albumString.append("VA")
@@ -433,6 +448,8 @@ public class FinalProcess {
             cdN = findCdN(item.getMediumList().get(0));
         } else if (item.getMediumList().size() > 1) {
             System.out.println("Unhandeled case: getMediumList().size() > 1");
+        } else if (rootItem.getCdN() > 0) {
+            cdN = rootItem.getCdN();
         }
 
         if (rootItem.hasVaAttribute()) {
@@ -460,19 +477,21 @@ public class FinalProcess {
             newArtistDirectory.mkdir();
             newAlbumDirectory.mkdir();
 
-            if (cdN > 0) {
-                File cdDirectory = new File(newAlbumDirectory + "\\" + "CD" + cdN);
+            if (cdN > 0 && item.hasAudioAttribute()) {
+                //for (int i = 1; i < cdN + 1; i++) {
+                File cdDirectory = new File(newAlbumDirectory + "\\" + "CD" + item.getCdN());
                 cdDirectory.mkdir();
                 organiseAll(item, cdDirectory);
+                //}
             } else {
                 organiseAll(item, newAlbumDirectory);
             }
 
-            if (!rootItem.getChildList().isEmpty()) {
+            if (!rootItem.getChildList().isEmpty() && rootItem.getCdN() == 0) {
                 item = rootItem;
             }
 
-            organiseAll(item, newAlbumDirectory);
+            //organiseAll(item, newAlbumDirectory);
         }
 
     }
@@ -495,9 +514,10 @@ public class FinalProcess {
         if (!ip.getListOfImageFiles().isEmpty()) {
             if (ip.getListOfImageFiles().size() > 1) {
                 File coversFolder = new File(to + "\\" + "Covers");
-                coversFolder.mkdir();
-                for (File image : ip.getListOfImageFiles()) {
-                    move(image, coversFolder);
+                if (coversFolder.mkdir()) {
+                    for (File image : ip.getListOfImageFiles()) {
+                        move(image, coversFolder);
+                    }
                 }
             } else {
                 File origFolderFile = ip.getListOfImageFiles().get(0);
@@ -518,24 +538,66 @@ public class FinalProcess {
         }
 
         if (!ip.getListOfOtherFiles().isEmpty()) {
-            for (File otherFile : ip.getListOfOtherFiles()) {
-                move(otherFile, to);
+            if (!ip.getListOfOtherFiles().get(0).getParentFile().equals(to)) {
+                File[] cont = to.listFiles();
+                File destFolder = null;
+                boolean exists = false;
+
+                for (File d : cont) {
+                    if (d.getName().equals(ip.getListOfOtherFiles().get(0).getParentFile().getName())) {
+                        destFolder = d;
+                        exists = true;
+                        break;
+                    }
+                }
+
+                if (exists && destFolder != null) {
+                    for (File otherFile : ip.getListOfOtherFiles().get(0).getParentFile().listFiles()) {
+                        move(otherFile, destFolder);
+                    }
+                } else {
+                    for (File otherFile : ip.getListOfOtherFiles()) {
+                        move(otherFile, to);
+                    }
+                }
+            } else {
+                for (File otherFile : ip.getListOfOtherFiles()) {
+                    move(otherFile, to);
+                }
             }
         }
     }
 
     private void removeJunkFiles(ObservableList<File> listOfOtherFiles) {
-        for (int i = 0; i < listOfOtherFiles.size(); i++) {
-            String extention = getExtension(listOfOtherFiles.get(i).getName());
-            if (extention.toLowerCase().equals("log")
-                    || extention.toLowerCase().equals("cue")
-                    || extention.toLowerCase().equals("db")
-                    || extention.toLowerCase().equals("m3u")
-                    || extention.toLowerCase().equals("accurip")) {
-                listOfOtherFiles.get(i).delete();
-                listOfOtherFiles.remove(i);
+        Iterator<File> it = listOfOtherFiles.iterator();
+
+        while (it.hasNext()) {
+            File next = it.next();
+            String extention = getExtension(next.getName()).toLowerCase();
+            String basename = getBaseName(next.getName()).toLowerCase();
+            if (extention.equals("log")
+                    || extention.equals("cue")
+                    || extention.equals("db")
+                    || extention.equals("m3u")
+                    || extention.equals("m3u8")
+                    || extention.equals("md5")
+                    || extention.equals("sfv")
+                    || extention.equals("url")
+                    || extention.equals("ds_store")
+                    || extention.equals("accurip")) {
+                next.delete();
+                it.remove();
+            }
+            if (".ds_store".equals(basename)
+                    || "folder.aucdtect".equals(basename)) {
+                next.delete();
+                it.remove();
             }
         }
+
+        /*for (int i = 0; i < listOfOtherFiles.size(); i++) {
+            
+         }*/
     }
 
     private void move(File from, File to) {
@@ -590,18 +652,18 @@ public class FinalProcess {
             } else {
                 //добавление жанра из тегов
                 /*boolean passed = false;
-                if (!rootItem.getChildList().isEmpty()) {
-                    for (ItemProperties child : rootItem.getChildList()) {
-                        if (child.hasAudioAttribute()) {
-                            outputRecordGenresValue = child.getMediumList().get(0).getGenres();
-                            passed = true;
-                        }
-                    }
-                } 
+                 if (!rootItem.getChildList().isEmpty()) {
+                 for (ItemProperties child : rootItem.getChildList()) {
+                 if (child.hasAudioAttribute()) {
+                 outputRecordGenresValue = child.getMediumList().get(0).getGenres();
+                 passed = true;
+                 }
+                 }
+                 } 
                 
-                if (!passed) {
-                    outputRecordGenresValue = rootItem.getMediumList().get(0).getGenres();
-                }*/
+                 if (!passed) {
+                 outputRecordGenresValue = rootItem.getMediumList().get(0).getGenres();
+                 }*/
             }
 
             if (!rymp.getCurrentRecord().getYearRecorded().isEmpty()) {
@@ -646,18 +708,28 @@ public class FinalProcess {
     private boolean artworkInFolderExists(Medium medium) {
         boolean exists = false;
         if (medium.getCurrentItem().hasImageAttribute()) {
-            for (File imageFile : medium.getCurrentItem().getListOfImageFiles()) {
-                if (imageFile.getName().contains("folder")) {
+            if (medium.getCurrentItem().getListOfImageFiles().size() == 1) {
+                try {
+                    artwork.setFromFile(medium.getCurrentItem().getListOfImageFiles().get(0));
+                    exists = true;
+                } catch (IOException ex) {
+                    System.out.println("IOException: " + medium.getCurrentItem().getListOfImageFiles().get(0).getName());
+                }
+            }
+
+        } else {
+            if (rootItem.getCdN() > 0 && rootItem.hasImageAttribute()) {
+                if (rootItem.getListOfImageFiles().size() == 1) {
                     try {
-                        artwork.setFromFile(imageFile);
+                        artwork.setFromFile(rootItem.getListOfImageFiles().get(0));
                         exists = true;
-                        break;
                     } catch (IOException ex) {
+                        System.out.println("IOException: " + medium.getCurrentItem().getListOfImageFiles().get(0).getName());
                     }
                 }
             }
-        } else {
-            if (medium.getCurrentItem().getCdN() > 0) {
+
+            if (medium.getCurrentItem().getCdNPropertyValue() > 0) {
                 System.out.println("Unhandeled case: ");
             }
         }

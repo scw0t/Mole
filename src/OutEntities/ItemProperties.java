@@ -87,8 +87,26 @@ public class ItemProperties {
         }
     }
 
-    public ItemProperties(ItemProperties another) {
-        this.item = another.item; // you can access  
+    public ItemProperties(ItemProperties root) {
+        dir = root.getDir();
+        cdN = root.getCdNPropertyValue();
+
+        parentDir = root.getParentDir();
+        currentDir = root.getCurrentDir();
+        directoryName = root.getDirectoryNameProperty();
+        audioAttribute = root.getAudioAttributeProperty();
+        cdNAttribute = root.getCdNProperty();
+        imageAttribute = root.getImageAttributeProperty();
+        vaAttribute = root.getVaAttributeProperty();
+        innerDirectoryAttribute = root.getInnerDirectoryAttributeProperty();
+
+        mediumList = root.getMediumList();
+        listOfAudioFiles = root.getListOfAudioFiles();
+        listOfImageFiles = root.getListOfImageFiles();
+        listOfOtherFiles = root.getListOfOtherFiles();
+        listOfInnerDirectories = root.getListOfInnerDirectories();
+
+        childList = root.getChildList();
     }
 
     // сканирование директории
@@ -114,18 +132,25 @@ public class ItemProperties {
                 new NotFileFilter(INSTANCE), DIRECTORY);
         childLinkedList.removeFirst();
 
-        int cdNotProcessed = getCdN();
+        int cdNotProcessed = getCdNPropertyValue();
 
         for (File child : childLinkedList) {
             ItemProperties ocd = new ItemProperties(child);
             ocd.setParentDir(parentDir);
             ocd.setCurrentDir(child);
-            if (getCdN() > 0 && ocd.hasAudioAttribute()) {
+            if (getCdNPropertyValue() > 0 && ocd.hasAudioAttribute()) {
                 cdNotProcessed--;
-                cdN = getCdN() - cdNotProcessed;
+                cdN = getCdNPropertyValue() - cdNotProcessed;
             }
             ocd.setCdN(cdN);
             ocd.fillListsOfInnerFiles(ocd);
+            if (ocd.listOfImageFiles.size() > 0) {
+                ocd.setImageAttribute(true);
+            }
+            
+            if (ocd.listOfAudioFiles.size() > 0) {
+                ocd.setAudioAttribute(true);
+            }
             childList.add(ocd);
         }
 
@@ -219,20 +244,29 @@ public class ItemProperties {
     }
 
     public void refreshData(String artist, String album, String type) {
-        if (childList.isEmpty()) {
+        if (childList.isEmpty() && hasAudioAttribute()) {
             for (Medium medium : mediumList) {
                 medium.setAlbum(album);
                 medium.setArtist(artist);
                 medium.setType(type);
             }
         } else {
-            for (ItemProperties child : childList) {
-                for (Medium medium : child.getMediumList()) {
+            if (!mediumList.isEmpty()) {
+                for (Medium medium : mediumList) {
                     medium.setAlbum(album);
                     medium.setArtist(artist);
                     medium.setType(type);
                 }
+            } else {
+                for (ItemProperties child : childList) {
+                    for (Medium medium : child.getMediumList()) {
+                        medium.setAlbum(album);
+                        medium.setArtist(artist);
+                        medium.setType(type);
+                    }
+                }
             }
+
         }
     }
 
@@ -254,6 +288,10 @@ public class ItemProperties {
         return directoryName.getValue();
     }
 
+    public SimpleStringProperty getDirectoryNameProperty() {
+        return directoryName;
+    }
+
     /**
      *
      * @return
@@ -262,12 +300,20 @@ public class ItemProperties {
         return audioAttribute.getValue();
     }
 
+    public SimpleBooleanProperty getAudioAttributeProperty() {
+        return audioAttribute;
+    }
+
     /**
      *
      * @return
      */
-    public int getCdN() {
+    public int getCdNPropertyValue() {
         return cdNAttribute.getValue();
+    }
+
+    public SimpleIntegerProperty getCdNProperty() {
+        return cdNAttribute;
     }
 
     /**
@@ -278,12 +324,20 @@ public class ItemProperties {
         return imageAttribute.getValue();
     }
 
+    public SimpleBooleanProperty getImageAttributeProperty() {
+        return imageAttribute;
+    }
+
     /**
      *
      * @return
      */
     public boolean hasVaAttribute() {
         return vaAttribute.getValue();
+    }
+
+    public SimpleBooleanProperty getVaAttributeProperty() {
+        return vaAttribute;
     }
 
     /**
@@ -422,7 +476,23 @@ public class ItemProperties {
         return innerDirectoryAttribute.getValue();
     }
 
+    public SimpleBooleanProperty getInnerDirectoryAttributeProperty() {
+        return innerDirectoryAttribute;
+    }
+
     public void setCdN(int cdN) {
         this.cdN = cdN;
+    }
+
+    public ObservableList<File> getListOfInnerDirectories() {
+        return listOfInnerDirectories;
+    }
+
+    public File getDir() {
+        return dir;
+    }
+
+    public int getCdN() {
+        return cdN;
     }
 }

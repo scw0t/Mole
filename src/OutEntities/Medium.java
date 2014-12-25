@@ -138,7 +138,7 @@ public class Medium {
     }
 
     public void setArtist(String artist) {
-        this.artist.getValue();
+        this.artist.setValue(artist);
     }
 
     public String getYear() {

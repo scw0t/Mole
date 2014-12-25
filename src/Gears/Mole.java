@@ -3,11 +3,14 @@ package Gears;
 import View.Controller;
 import com.echonest.api.v4.EchoNestAPI;
 import com.echonest.api.v4.EchoNestException;
+import java.io.File;
 import java.io.IOException;
 import static java.lang.System.out;
 import java.util.List;
 import static java.util.logging.Level.OFF;
 import static java.util.logging.Logger.getLogger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.application.Application;
 import static javafx.application.Platform.exit;
 import javafx.scene.Scene;
@@ -50,12 +53,14 @@ public class Mole extends Application {
         });
 
         primaryStage.show();
-
+        
+        
+        
         /*try {
-            musicbrainzTest();
-        } catch (MBWS2Exception ex) {
-            ex.printStackTrace();
-        }*/
+         musicbrainzTest();
+         } catch (MBWS2Exception ex) {
+         ex.printStackTrace();
+         }*/
         //gracenoteTest();
         /*try {
          echonestTest();
@@ -76,8 +81,6 @@ public class Mole extends Application {
         String artistName = "Erik";
         String albumName = "Look Where I Am";
         String album_id = null;
-
-        
 
         //Поиск исполнителя
         org.musicbrainz.controller.Artist artistsearch = new org.musicbrainz.controller.Artist();
