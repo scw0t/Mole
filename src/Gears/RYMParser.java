@@ -62,6 +62,8 @@ public class RYMParser {
 
     private int artistPageAttempts = 0;
     private int albumPagesAttempts = 0;
+    
+    private boolean artistInfoParsed = false;
 
     /**
      *
@@ -121,7 +123,6 @@ public class RYMParser {
      * @return
      */
     public boolean parseArtistInfo(String inputArtistName) {
-        boolean parsed = false;
         try {
             Document doc = getArtistPage(inputArtistName);
             System.out.println("Parsing: " + rymArtistUrl + validateUrl(inputArtistName));
@@ -227,7 +228,7 @@ public class RYMParser {
                     }
                 }
                 parseArtistDiscography(doc);
-                parsed = true;
+                artistInfoParsed = true;
             } else {
                 System.out.println("На сайте произошли какие-то изменения. Check this out.");
             }
@@ -246,11 +247,11 @@ public class RYMParser {
                     break;
                 case 3:
                     System.out.println("URL. Status=404");
-                    parsed = false;
+                    artistInfoParsed = false;
                     break;
             }
         }
-        return parsed;
+        return artistInfoParsed;
     }
 
     
@@ -260,7 +261,6 @@ public class RYMParser {
      * @return
      */
     public boolean parseAlbumInfo(String artistName, String albumTitle) {
-        boolean parsed = false;
         try {
             Document doc = getAlbumPage(artistName, albumTitle);
 
@@ -349,7 +349,7 @@ public class RYMParser {
                 }
                 currentRecord.setIssues(parseIssuesInfo(doc, currentRecord));
                 currentRecord.printIssues();
-                parsed = true;
+                artistInfoParsed = true;
             } else {
                 message.setValue("Unable to parse album " + inputAlbumName);
             }
@@ -362,36 +362,57 @@ public class RYMParser {
                     String fixedArtistNameWithoutPrefix_1 = artistName.startsWith("The ") ? artistName.replaceFirst("The ", "") : artistName;
                     String fixedAlbumNameWithoutPrefix_1 = albumTitle.startsWith("The ") ? albumTitle.replaceFirst("The ", "") : albumTitle;
                     message.setValue("Search case: " + fixedArtistNameWithoutPrefix_1 + " - " + fixedAlbumNameWithoutPrefix_1);
-                    parseAlbumInfo(fixedArtistNameWithoutPrefix_1, fixedAlbumNameWithoutPrefix_1);
+                    boolean p1 = parseAlbumInfo(fixedArtistNameWithoutPrefix_1, fixedAlbumNameWithoutPrefix_1);
+                    if (!artistInfoParsed) {
+                        artistInfoParsed = p1;
+                    }
                     break;
                 case 2:
                     String fixedArtistNameWithoutPrefix_2 = artistName.startsWith("The ") ? artistName.replaceFirst("The ", "") : artistName;
                     String fixedAlbumNameWithPrefix_2 = !albumTitle.startsWith("The ") ? "The " + albumTitle : albumTitle;
                     message.setValue("Search case: " + fixedArtistNameWithoutPrefix_2 + " - " + fixedAlbumNameWithPrefix_2);
-                    parseAlbumInfo(fixedArtistNameWithoutPrefix_2, fixedAlbumNameWithPrefix_2);
+                    boolean p2 = parseAlbumInfo(fixedArtistNameWithoutPrefix_2, fixedAlbumNameWithPrefix_2);
+                    if (!artistInfoParsed) {
+                        artistInfoParsed = p2;
+                    }
                     break;
                 case 3:
                     String fixedArtistNameWithPrefix_3 = !artistName.startsWith("The ") ? "The " + artistName : artistName;
                     String fixedAlbumNameWithoutPrefix_3 = albumTitle.startsWith("The ") ? albumTitle.replaceFirst("The ", "") : albumTitle;
                     message.setValue("Search case: " + fixedArtistNameWithPrefix_3 + " - " + fixedAlbumNameWithoutPrefix_3);
-                    parseAlbumInfo(fixedArtistNameWithPrefix_3, fixedAlbumNameWithoutPrefix_3);
+                    boolean p3 = parseAlbumInfo(fixedArtistNameWithPrefix_3, fixedAlbumNameWithoutPrefix_3);
+                    if (!artistInfoParsed) {
+                        artistInfoParsed = p3;
+                    }
                     break;
                 case 4:
                     String fixedArtistNameWithPrefix_4 = !artistName.startsWith("The ") ? "The " + artistName : artistName;
                     String fixedAlbumNameWithPrefix_4 = !albumTitle.startsWith("The ") ? "The " + albumTitle : albumTitle;
                     message.setValue("Search case: " + fixedArtistNameWithPrefix_4 + " - " + fixedAlbumNameWithPrefix_4);
-                    parseAlbumInfo(fixedArtistNameWithPrefix_4, fixedAlbumNameWithPrefix_4);
+                    boolean p4 = parseAlbumInfo(fixedArtistNameWithPrefix_4, fixedAlbumNameWithPrefix_4);
+                    if (!artistInfoParsed) {
+                        artistInfoParsed = p4;
+                    }
                     break;
                 case 5:
                     message.setValue("Search case: " + inputArtistName + "_f1");
-                    parseAlbumInfo(inputArtistName + "_f1", inputAlbumName);
+                    //parseAlbumInfo(inputArtistName + "_f1", inputAlbumName);
+                    setCurrentArtistUrl(rymArtistUrl + validateUrl(inputArtistName + "_f1"));
+                    //boolean p5 = parseArtistInfo(inputArtistName + "_f1");
+                    boolean p5 = parseAlbumInfo(inputArtistName + "_f1", inputAlbumName);
+                    if (!artistInfoParsed) {
+                        artistInfoParsed = p5;
+                    }
                     break;
                 case 6:
                     message.setValue("Search case: " + inputArtistName + "_f2");
-                    parseAlbumInfo(inputArtistName + "_f2", inputAlbumName);
+                    boolean p6 = parseAlbumInfo(inputArtistName + "_f2", inputAlbumName);
+                    if (!artistInfoParsed) {
+                        artistInfoParsed = p6;
+                    }
                     break;
                 default:
-                    parsed = false;
+                    artistInfoParsed = false;
                     break;
             }
 
@@ -427,7 +448,7 @@ public class RYMParser {
              }*/
         }
 
-        return parsed;
+        return artistInfoParsed;
     }
 
     /**

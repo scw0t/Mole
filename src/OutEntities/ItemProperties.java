@@ -147,7 +147,7 @@ public class ItemProperties {
             if (ocd.listOfImageFiles.size() > 0) {
                 ocd.setImageAttribute(true);
             }
-            
+
             if (ocd.listOfAudioFiles.size() > 0) {
                 ocd.setAudioAttribute(true);
             }
@@ -268,6 +268,10 @@ public class ItemProperties {
             }
 
         }
+    }
+
+    public boolean isImageFolder() {
+        return this.hasImageAttribute() && !this.hasAudioAttribute();
     }
 
     private boolean isAudio(File file) {

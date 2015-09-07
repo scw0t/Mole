@@ -254,7 +254,8 @@ public class DirectoryTreeView extends Stage {
                         Controller.initialDirectoryList.clear();
                     }
 
-                    final Iterator<CustomCheckBoxTreeItem> iterator = checkTreeView.getCheckModel().getCheckedItems().iterator();
+                    final Iterator<CustomCheckBoxTreeItem> iterator = 
+                            checkTreeView.getCheckModel().getCheckedItems().iterator();
 
                     while (iterator.hasNext()) {
                         CustomCheckBoxTreeItem next = iterator.next();

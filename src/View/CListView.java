@@ -52,7 +52,9 @@ public class CListView extends Stage {
     private TextField artistTextField = new TextField();
     private TextField albumTextField = new TextField();
     private TextField typeTextField = new TextField();
-    private ComboBox typeBox = new ComboBox();
+    private ComboBox<String> typeBox = new ComboBox();
+    
+    private String selectedType;
 
     public CListView() {
         initModality(Modality.WINDOW_MODAL);
@@ -107,6 +109,12 @@ public class CListView extends Stage {
         skipButton.setStyle("-fx-focus-color: transparent;");
         skipButton.setPrefSize(70, 30);
         skipButton.setOnAction((ActionEvent event) -> {
+            try {
+                finalProcess.launch();
+            } catch (KeyNotFoundException | IOException | TagException | ReadOnlyFileException | InvalidAudioFrameException | CannotReadException ex) {
+                System.out.println("Final process exception");
+                ex.printStackTrace();
+            }
             close();
         });
 
@@ -167,18 +175,17 @@ public class CListView extends Stage {
                 albumTextField.textProperty().unbind();
                 artistTextField.textProperty().unbind();
                 //typeTextField.textProperty().unbind();
-                typeBox.getEditor().textProperty().unbind();
-                
-                
-                
+                //typeBox.getEditor().textProperty().unbind();
+                //parseTask.getTypeProperty().unbind();
+
                 cTable.itemsProperty().bind(parseTask.valueProperty());
                 indicator.progressProperty().bind(parseTask.progressProperty());
                 stateLabel.textProperty().bind(parseTask.messageProperty());
                 albumTextField.textProperty().bindBidirectional(parseTask.getAlbumProperty());
                 artistTextField.textProperty().bindBidirectional(parseTask.getArtistProperty());
-                typeBox.getEditor().textProperty().bind(parseTask.getTypeProperty());
+                //typeBox.getEditor().textProperty().bind(parseTask.getTypeProperty());
                 //typeTextField.textProperty().bindBidirectional(parseTask.getTypeProperty());
-                System.out.println(typeBox.getEditor().textProperty().getValue());
+                parseTask.getTypeProperty().bind(new SimpleStringProperty(getSelectedType()));
 
                 new Thread(parseTask).start();
             }
@@ -195,12 +202,14 @@ public class CListView extends Stage {
         Label artistLabel = new Label("Artist");
         Label albumLabel = new Label("Album");
         Label typeLabel = new Label("Type");
-        
+
         ObservableList<String> lst = FXCollections.observableArrayList(
+                
                 "Album",
+                "Compilation",
                 "EP",
                 "Single",
-                "Compilation",
+                
                 "Bootleg"
         );
 
@@ -301,6 +310,11 @@ public class CListView extends Stage {
 
     public void setTypeBox(ComboBox typeBox) {
         this.typeBox = typeBox;
+    }
+
+    public String getSelectedType() {
+        System.out.println("Selected item: " + typeBox.getSelectionModel().getSelectedItem());
+        return typeBox.getSelectionModel().getSelectedItem();
     }
 
     public class CTable extends TableView<CModel> {

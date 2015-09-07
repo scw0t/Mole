@@ -83,7 +83,7 @@ public class Medium {
             artist.set(artists.first());
         }
 
-        if (years.size() == 1 && !years.first().equals("xxxx")) {
+        if (!years.first().equals("xxxx")) { //years.size() == 1 && 
             year.setValue(years.first());
         }
 

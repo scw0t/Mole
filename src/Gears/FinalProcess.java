@@ -158,7 +158,7 @@ public class FinalProcess {
                 trackString = Integer.toString(trackCount);
             }
 
-            file.getTag().setField(TRACK_TOTAL, "");
+           file.getTag().setField(TRACK_TOTAL, "");
 
             file.getTag().setField(TRACK, trackString);
 
@@ -195,7 +195,8 @@ public class FinalProcess {
             }
 
             //Запись тега YEAR. Если в поле YEAR уже есть значение, то сохраняется наименьшее
-            if (!outputAlbumYearValue.isEmpty() && !file.getTag().getFirst(YEAR).equals(outputAlbumYearValue)) {
+            if (outputAlbumYearValue != null &&
+                    !outputAlbumYearValue.isEmpty() && !file.getTag().getFirst(YEAR).equals(outputAlbumYearValue)) {
                 if (!file.getTag().getFirst(YEAR).isEmpty() && file.getTag().getFirst(YEAR).length() == 4) {
                     if (valueOf(outputAlbumYearValue) < valueOf(file.getTag().getFirst(YEAR))) {
                         file.getTag().setField(YEAR, outputAlbumYearValue);
@@ -512,7 +513,7 @@ public class FinalProcess {
 
     private void organiseImages(ItemProperties ip, File to) {
         if (!ip.getListOfImageFiles().isEmpty()) {
-            if (ip.getListOfImageFiles().size() > 1) {
+            if (ip.isImageFolder()) {
                 File coversFolder = new File(to + "\\" + "Covers");
                 if (coversFolder.mkdir()) {
                     for (File image : ip.getListOfImageFiles()) {
@@ -642,6 +643,7 @@ public class FinalProcess {
                 outputCountryValue = rymp.getCurrentArtist().getCountry();
             }
         } else {
+            outputArtistValue = rootItem.getMediumList().get(0).getArtist();
         }
 
         if (rymp.getCurrentRecord() != null) {
@@ -666,16 +668,31 @@ public class FinalProcess {
                  }*/
             }
 
-            if (!rymp.getCurrentRecord().getYearRecorded().isEmpty()) {
+            if (!rymp.getCurrentRecord().getYearRecorded().isEmpty() &&
+                    "".equals(rymp.getCurrentRecord().getYearRecorded())) {
                 outputAlbumYearValue = rymp.getCurrentRecord().getYearRecorded();
-            } else if (!rymp.getCurrentRecord().getYearReleased().isEmpty()) {
+            } else if (!rymp.getCurrentRecord().getYearReleased().isEmpty() &&
+                    "".equals(rymp.getCurrentRecord().getYearReleased())) {
                 outputAlbumYearValue = rymp.getCurrentRecord().getYearReleased();
+            } else {
+                if (!rootItem.getMediumList().isEmpty()) {
+                    outputAlbumYearValue = rootItem.getMediumList().get(0).getYear();
+                } else {
+                    for (ItemProperties item : rootItem.getChildList()) {
+                        if (item.hasAudioAttribute()) {
+                            outputAlbumYearValue = item.getMediumList().get(0).getYear();
+                            break;
+                        }
+                    }
+                }
+                
             }
 
             if (!rymp.getCurrentRecord().getType().isEmpty()) {
                 outputAlbumTypeValue = rymp.getCurrentRecord().getType();
             }
         } else {
+            outputAlbumYearValue = rootItem.getMediumList().get(0).getYear();
         }
     }
 

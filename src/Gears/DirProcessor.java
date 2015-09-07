@@ -133,7 +133,7 @@ public class DirProcessor {
     }
 
     public static boolean hasAudio(File dir) throws IOException, TagException, ReadOnlyFileException, InvalidAudioFrameException, CannotReadException {
-        String[] filter = {"mp3", "MP3"};
+        String[] filter = {"mp3", "MP3", "Mp3"};
         LinkedList<File> mp3List = (LinkedList) FileUtils.listFiles(dir, filter, false);
         return mp3List.size() != 0;
     }

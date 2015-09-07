@@ -18,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -52,7 +53,7 @@ public class Controller extends BorderPane {
 
     private LogOutput logOutput;
 
-    private final String initDirPath = "e:\\Music\\!test2\\";
+    private final String initDirPath = "h:\\Music\\! Unlistened\\!sorted";
     public static TextField pathTextArea;
     public static ObservableList<IncomingDirectory> initialDirectoryList;
     public static TextArea infoTextArea;
@@ -330,7 +331,15 @@ public class Controller extends BorderPane {
                             cListView.getStateLabel().textProperty().bind(parseTask.messageProperty());
                             cListView.getAlbumTextField().textProperty().bindBidirectional(parseTask.getAlbumProperty());
                             cListView.getArtistTextField().textProperty().bindBidirectional(parseTask.getArtistProperty());
-                            //cListView.getTypeTextField().textProperty().bindBidirectional(parseTask.getTypeProperty());
+                            
+                            parseTask.getTypeProperty().bind(new SimpleStringProperty(cListView.getSelectedType()));
+                            
+                            
+                            
+                            //new SimpleStringProperty(cListView.getSelectedType()).bind(parseTask.getTypeProperty());
+                            
+                            
+                            System.out.println("Type: " + cListView.getSelectedType());
                             
                             new Thread(parseTask).start();
                             cListView.showAndWait();

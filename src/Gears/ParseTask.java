@@ -26,19 +26,20 @@ public class ParseTask extends Task<ObservableList<CListView.CModel>> {
         });
 
         try {
-            //parseFactory.setType(typeProperty.getValue());
+            parseFactory.setType(typeProperty.getValue());
             parseFactory.launch();
             if (parseFactory.getIssueList().isEmpty()) {
                 Platform.runLater(() -> {
                     artistProperty.set(parseFactory.getRymp().getInputArtistName());
                     albumProperty.set(parseFactory.getRymp().getInputAlbumName());
+                    //typeProperty.set(parseFactory.getRymp().getCurrentRecord().getType());
                 });
                 updateMessage("Nothing to found");
             } else {
                 Platform.runLater(() -> {
                     artistProperty.set(parseFactory.getRymp().getCurrentArtist().getName());
                     albumProperty.set(parseFactory.getRymp().getCurrentRecord().getName());
-                    typeProperty.set(parseFactory.getRymp().getCurrentRecord().getType());
+                    //typeProperty.set(parseFactory.getRymp().getCurrentRecord().getType());
                 });
                 updateMessage("Searching complete");
             }
